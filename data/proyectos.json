@@ -1,0 +1,38 @@
+{
+  "_instrucciones": "Llena los campos marcados como TODO con los datos reales de cada proyecto. Lo que dejes vacío o en null simplemente no se lo va a mencionar el agente al cliente (le va a decir que un asesor humano se lo confirma). No necesitas tocar ningún archivo .js para esto — solo este JSON. Los modelos de Diamante ya se llenaron a partir de la carpeta de Drive 'Propiedades Diamante Residencial'; faltan recámaras/plantas por modelo, amenidades, esquemas de pago y diferenciadores.",
+  "inmobiliaria": {
+    "nombre": "Nuevo Comienzo",
+    "ubicacion": "Franco, Silao"
+  },
+  "proyectos": [
+    {
+      "nombre": "Diamante",
+      "tipo_producto": "Terrenos y casas de varios modelos",
+      "precio_desde": "$770,000 MXN (terreno) / $1,400,000 MXN (casa)",
+      "modelos": [
+        { "nombre": "Terreno esquina, manzana 2 lote 1A", "precio": "$770,000 MXN", "habitaciones": "TODO", "plantas": "TODO" },
+        { "nombre": "Santi (en esquina)", "precio": "$1,400,000 MXN", "habitaciones": "TODO", "plantas": "TODO" },
+        { "nombre": "Santi (ampliada)", "precio": "$1,450,000 MXN", "habitaciones": "TODO", "plantas": "TODO" },
+        { "nombre": "Rubí", "precio": "$1,700,000 MXN", "habitaciones": "TODO", "plantas": "TODO" },
+        { "nombre": "Diamante", "precio": "$2,900,000 MXN", "habitaciones": "TODO", "plantas": "TODO" },
+        { "nombre": "Esmeralda", "precio": "$3,200,000 MXN", "habitaciones": "TODO", "plantas": "TODO" },
+        { "nombre": "Esmeralda con alberca", "precio": "$5,200,000 MXN", "habitaciones": "TODO", "plantas": "TODO" }
+      ],
+      "habitaciones": "TODO (varía por modelo, ver arriba)",
+      "plantas": "TODO (varía por modelo, ver arriba)",
+      "amenidades": ["TODO"],
+      "esquemas_de_pago": ["TODO (ej. Infonavit, crédito bancario, contado)"],
+      "diferenciadores": "TODO (qué lo distingue de Santuario)"
+    },
+    {
+      "nombre": "Santuario",
+      "tipo_producto": "TODO",
+      "precio_desde": "TODO",
+      "habitaciones": "TODO",
+      "plantas": "TODO",
+      "amenidades": ["TODO"],
+      "esquemas_de_pago": ["TODO"],
+      "diferenciadores": "TODO"
+    }
+  ]
+}
