@@ -29,7 +29,7 @@ app.post("/webhooks/timelines", async (req, res) => {
     // de verdad para corregirlo en lib/timelinesPayload.js.
     console.log("Payload recibido de TimelinesAI:", JSON.stringify(req.body, null, 2));
 
-    const { messageId, chatId, direction, attachment, text } = parseTimelinesPayload(req.body);
+    const { messageId, chatId, direction, phone, attachment, text } = parseTimelinesPayload(req.body);
 
     if (!messageId || processedMessageIds.has(messageId)) return;
     processedMessageIds.add(messageId);
@@ -60,18 +60,30 @@ app.post("/webhooks/timelines", async (req, res) => {
       console.log("Texto recibido:", userText);
     }
 
-    // 3. Generar la respuesta con Claude (decide también el formato de salida)
-    const { formato, texto: replyText } = await generateReply(userText, inputMode);
+    // 3. Generar la respuesta con Claude (decide también el formato de
+    // salida, y de paso crea en HubSpot la tarea de seguimiento si detecta
+    // una cita agendada o una solicitud de información específica).
+    const { formato, texto: replyText, resumen } = await generateReply(userText, inputMode, {
+      chatId,
+      phone,
+    });
     console.log(`Respuesta generada [formato: ${formato}]:`, replyText);
 
-    // 4. Enviar la respuesta en el formato decidido
-    if (formato === "voz") {
+    // 4. Enviar la respuesta en el formato decidido.
+    // "voz_y_texto": se manda la respuesta completa en audio Y un texto
+    // breve con el resumen (precios/listas), en el mismo turno.
+    if (formato === "voz" || formato === "voz_y_texto") {
       const audioMp3 = await synthesizeSpeech(replyText);
       // Convertir a ogg/opus para que WhatsApp lo muestre como nota de
       // voz (con forma de onda) en vez de un archivo adjunto genérico.
       const audioOgg = await convertToOggOpus(audioMp3);
       await sendVoiceMessage(chatId, audioOgg, "respuesta.ogg");
       console.log(`Respuesta de voz enviada al chat ${chatId}`);
+
+      if (formato === "voz_y_texto" && resumen) {
+        await sendTextMessage(chatId, resumen);
+        console.log(`Resumen de texto enviado al chat ${chatId}`);
+      }
     } else {
       await sendTextMessage(chatId, replyText);
       console.log(`Respuesta de texto enviada al chat ${chatId}`);
