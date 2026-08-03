@@ -1,0 +1,49 @@
+{
+  "organizacion": "Confiat (SOC Asesores)",
+  "descripcion": "Aliado financiero de Nuevo Comienzo para tramitar crédito hipotecario. Forman parte de SOC, empresa mexicana con más de 25 años de experiencia, certificados ante la Asociación de Brókers Hipotecarios (ABH). Analizan las mejores opciones financieras, ayudan a elegir el mejor crédito hipotecario y acompañan al cliente durante todo el trámite. Sin costo para el cliente.",
+  "documentos_requeridos": [
+    "Identificación oficial vigente",
+    "Constancia de situación fiscal",
+    "Comprobante de domicilio",
+    "Comprobante de ingresos (recibos de nómina de los últimos 3 meses, o estados de cuenta bancarios de los últimos 6 meses si es independiente)",
+    "Buró de crédito y score"
+  ],
+  "criterios_calificacion": {
+    "ingresos": "Para independientes con ingresos informales (ej. Hipoteca Integral Santander) se puede comprobar con estudio socioeconómico; tasa 12.50% con aforo <= 80%, o 13.50% con aforo > 80% (aforo máximo 90%).",
+    "buro_de_credito": "Solo cuentan los créditos bancarios como compromisos. Pagos puntuales mejoran el perfil; pagos atrasados o deudas cubiertas con quitas/descuentos afectan mucho la aprobación.",
+    "aforo": "Es el % del valor de la propiedad que presta el banco. La mayoría de los bancos no prestan el 100% (salvo Cofinavit), por eso se pide enganche. A menor aforo (más enganche): menor riesgo para el banco, mejor tasa, y a veces menor plazo."
+  },
+  "ejemplo_generico_adquisicion": {
+    "valor_operacion": 2500000,
+    "enganche_sugerido_pct": "10%",
+    "monto_credito": 2250000,
+    "mensualidad_aprox_rango": "$24,392 - $28,810",
+    "mensualidad_media_aprox": 25920.16,
+    "ingresos_a_acreditar": "De 2.5 a 3 veces el pago de la mensualidad (media aprox. $44,152.80)",
+    "avaluo_aprox": 7000,
+    "comision_apertura": "1% del crédito autorizado",
+    "gastos_notariales_aprox": "3% del valor de operación",
+    "gastos_totales_aprox_con_enganche": 354500
+  },
+  "simulaciones": [
+    { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "valor_vivienda": 1150000, "monto_credito": 1035000, "plazo_anos": 20, "tasa": "10.30%", "cat": "12.3%", "pago_mensual": 11589.51, "ingreso_requerido": 17043.40, "enganche": 115000 },
+    { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "valor_vivienda": 1400000, "monto_credito": 1260000, "plazo_anos": 20, "tasa": "10.30%", "cat": "12.2%", "pago_mensual": 14045.92, "ingreso_requerido": 20655.77, "enganche": 140000 },
+    { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "valor_vivienda": 1450000, "monto_credito": 1305000, "plazo_anos": 20, "tasa": "10.30%", "cat": "12.2%", "pago_mensual": 14537.21, "ingreso_requerido": 21378.25, "enganche": 145000 },
+    { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "valor_vivienda": 1700000, "monto_credito": 1530000, "plazo_anos": 20, "tasa": "10.30%", "cat": "12.1%", "pago_mensual": 16993.62, "ingreso_requerido": 24990.62, "enganche": 170000 },
+    { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "valor_vivienda": 2900000, "monto_credito": 2610000, "plazo_anos": 20, "tasa": "10.30%", "cat": "12.0%", "pago_mensual": 28784.41, "ingreso_requerido": 42330.02, "enganche": 290000 },
+    { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "valor_vivienda": 3200000, "monto_credito": 2880000, "plazo_anos": 20, "tasa": "10.30%", "cat": "12.0%", "pago_mensual": 31732.11, "ingreso_requerido": 46664.87, "enganche": 320000 },
+    { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "valor_vivienda": 5200000, "monto_credito": 4680000, "plazo_anos": 20, "tasa": "10.30%", "cat": "11.9%", "pago_mensual": 51383.43, "ingreso_requerido": 75563.87, "enganche": 520000 },
+
+    { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "valor_vivienda": 1150000, "monto_credito": 1035000, "plazo_anos": 20, "tasa": "11.35%", "pago_mensual": 11395, "ingreso_requerido": 18992, "enganche": 115000 },
+    { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "valor_vivienda": 1400000, "monto_credito": 1260000, "plazo_anos": 20, "tasa": "11.35%", "pago_mensual": 13873, "ingreso_requerido": 23121, "enganche": 140000 },
+    { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "valor_vivienda": 1450000, "monto_credito": 1305000, "plazo_anos": 20, "tasa": "11.35%", "pago_mensual": 14368, "ingreso_requerido": 23947, "enganche": 145000 },
+    { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "valor_vivienda": 1700000, "monto_credito": 1530000, "plazo_anos": 20, "tasa": "11.35%", "pago_mensual": 16845, "ingreso_requerido": 28076, "enganche": 170000 },
+    { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "valor_vivienda": 2900000, "monto_credito": 2610000, "plazo_anos": 20, "tasa": "11.35%", "pago_mensual": 28736, "ingreso_requerido": 47894, "enganche": 290000 },
+    { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "valor_vivienda": 3200000, "monto_credito": 2880000, "plazo_anos": 20, "tasa": "11.35%", "pago_mensual": 31709, "ingreso_requerido": 52848, "enganche": 320000 },
+    { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "valor_vivienda": 5200000, "monto_credito": 4680000, "plazo_anos": 20, "tasa": "11.35%", "pago_mensual": 51527, "ingreso_requerido": 85878, "enganche": 520000 },
+
+    { "banco": "Banorte", "producto": "Terreno urbanizado", "valor_vivienda": 660000, "monto_credito": 462000, "plazo_meses": 180, "tasa": "10.68%", "pago_mensual": 5726.87, "ingreso_requerido": 11453.74, "enganche": 198000 },
+    { "banco": "Banorte", "producto": "Terreno urbanizado", "valor_vivienda": 825000, "monto_credito": 577500, "plazo_meses": 180, "tasa": "10.68%", "pago_mensual": 7096.09, "ingreso_requerido": 14192.17, "enganche": 247500 }
+  ],
+  "notas": "Todas las cifras son cotizaciones de referencia (versión 13-14 de julio de 2026); la tasa, aforo y condiciones finales dependen de la evaluación de crédito real del cliente. Siempre aclarar esto al compartir un monto."
+}
