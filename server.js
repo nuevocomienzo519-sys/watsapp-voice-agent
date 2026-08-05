@@ -19,6 +19,24 @@ const processedMessageIds = new Set();
 const CHATS_SILENCIADOS = new Set([57693202]);
 const PALABRA_ACTIVACION = "@asistentewaba";
 
+// Historial de conversación por chat, para que Claude recuerde el
+// contexto entre mensajes. Se guarda en memoria del proceso: se
+// reinicia si el servicio se reinicia o redespliega en Render.
+const conversationHistory = new Map();
+const MAX_HISTORY_MESSAGES = 20; // ~10 turnos (usuario + asistente)
+
+function getHistory(chatId) {
+  return conversationHistory.get(chatId) || [];
+}
+
+function appendHistory(chatId, userText, replyText) {
+  const historial = getHistory(chatId);
+  historial.push({ role: "user", content: userText });
+  historial.push({ role: "assistant", content: replyText });
+  while (historial.length > MAX_HISTORY_MESSAGES) historial.shift();
+  conversationHistory.set(chatId, historial);
+}
+
 app.post("/webhooks/timelines", async (req, res) => {
   // 1. Verificación básica del secreto compartido
   if (req.query.secret !== process.env.WEBHOOK_SECRET) {
@@ -36,6 +54,7 @@ app.post("/webhooks/timelines", async (req, res) => {
     console.log("Payload recibido de TimelinesAI:", JSON.stringify(req.body, null, 2));
 
     const { messageId, chatId, direction, phone, attachment, text } = parseTimelinesPayload(req.body);
+    const senderName = req.body?.message?.sender?.full_name || null;
 
     if (!messageId || processedMessageIds.has(messageId)) return;
     processedMessageIds.add(messageId);
@@ -80,16 +99,29 @@ app.post("/webhooks/timelines", async (req, res) => {
       }
 
       userText = userText.replace(new RegExp(PALABRA_ACTIVACION, "ig"), "").trim();
+
+      // Si mandaron solo la palabra de activación, sin pregunta, le damos
+      // un texto por defecto para que Claude no reciba un mensaje vacío.
+      if (!userText) {
+        userText = "Hola, ¿en qué puedo ayudarte?";
+      }
     }
 
     // 3. Generar la respuesta con Claude (decide también el formato de
     // salida, y de paso crea en HubSpot la tarea de seguimiento si detecta
-    // una cita agendada o una solicitud de información específica).
-    const { formato, texto: replyText, resumen } = await generateReply(userText, inputMode, {
-      chatId,
-      phone,
-    });
+    // una cita agendada o una solicitud de información específica, y
+    // actualiza el nombre del contacto si hace falta).
+    // Le mandamos el historial de esta conversación para que recuerde
+    // el contexto entre mensajes.
+    const { formato, texto: replyText, resumen } = await generateReply(
+      userText,
+      inputMode,
+      { chatId, phone, senderName },
+      getHistory(chatId)
+    );
     console.log(`Respuesta generada [formato: ${formato}]:`, replyText);
+
+    appendHistory(chatId, userText, replyText);
 
     // 4. Enviar la respuesta en el formato decidido.
     // "voz_y_texto": se manda la respuesta completa en audio Y un texto
