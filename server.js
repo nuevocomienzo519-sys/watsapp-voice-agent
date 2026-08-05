@@ -13,6 +13,12 @@ app.use(express.json({ limit: "20mb" }));
 // Evita procesar el mismo mensaje dos veces si TimelinesAI reintenta el webhook.
 const processedMessageIds = new Set();
 
+// Chats donde el agente NO debe responder automáticamente, salvo que el
+// mensaje incluya la palabra clave de activación. Por ahora solo el grupo
+// "Los Miguelines" (chat_id 57693202 en TimelinesAI).
+const CHATS_SILENCIADOS = new Set([57693202]);
+const PALABRA_ACTIVACION = "@asistentewaba";
+
 app.post("/webhooks/timelines", async (req, res) => {
   // 1. Verificación básica del secreto compartido
   if (req.query.secret !== process.env.WEBHOOK_SECRET) {
@@ -58,6 +64,22 @@ app.post("/webhooks/timelines", async (req, res) => {
       // 2b. Mensaje de texto: se usa directo, sin Whisper.
       userText = text;
       console.log("Texto recibido:", userText);
+    }
+
+    // Chats silenciados: se ignora todo, salvo que el mensaje incluya la
+    // palabra clave de activación (en ese caso se le quita la palabra
+    // antes de mandarlo a Claude, para que no confunda la respuesta).
+    if (CHATS_SILENCIADOS.has(chatId)) {
+      const tieneActivacion = userText
+        .toLowerCase()
+        .includes(PALABRA_ACTIVACION.toLowerCase());
+
+      if (!tieneActivacion) {
+        console.log(`Chat ${chatId} silenciado, mensaje ignorado (sin palabra de activación).`);
+        return;
+      }
+
+      userText = userText.replace(new RegExp(PALABRA_ACTIVACION, "ig"), "").trim();
     }
 
     // 3. Generar la respuesta con Claude (decide también el formato de
