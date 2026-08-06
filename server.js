@@ -146,23 +146,7 @@ app.post("/webhooks/timelines", async (req, res) => {
     console.error("Error procesando el mensaje:", err);
   }
 });
-// Ruta temporal para probar la calidad del audio sin depender de
-// TimelinesAI. Bórrala o coméntala cuando ya no la necesites.
-app.get("/debug/tts", async (req, res) => {
-  if (req.query.secret !== process.env.WEBHOOK_SECRET) {
-    return res.status(401).send("No autorizado");
-  }
-  try {
-    const texto = req.query.text || "Hola, esta es una prueba de audio para revisar la calidad de la voz.";
-    const audioWav = await synthesizeSpeech(texto);
-    const audioOgg = await convertToOggOpus(audioWav);
-    res.set("Content-Type", "audio/ogg");
-    res.set("Content-Disposition", 'inline; filename="prueba.ogg"');
-    res.send(audioOgg);
-  } catch (err) {
-    res.status(500).send(`Error: ${err.message}`);
-  }
-});
+
 app.get("/health", (_req, res) => res.send("ok"));
 
 const port = process.env.PORT || 3000;
