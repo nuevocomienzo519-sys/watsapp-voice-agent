@@ -6,6 +6,7 @@ const { generateReply } = require("./lib/llm");
 const { synthesizeSpeech } = require("./lib/tts");
 const { convertToOggOpus } = require("./lib/audioConvert");
 const { parseTimelinesPayload, isAudioAttachment } = require("./lib/timelinesPayload");
+const { procesarChatExportado } = require("./lib/chatExportadoCore");
 
 const app = express();
 app.use(express.json({ limit: "20mb" }));
@@ -18,6 +19,10 @@ const processedMessageIds = new Set();
 // "Los Miguelines" (chat_id 57693202 en TimelinesAI).
 const CHATS_SILENCIADOS = new Set([57693202]);
 const PALABRA_ACTIVACION = "@asistentewaba";
+
+// Palabra clave para disparar la creación automática en HubSpot de un
+// chat exportado de WhatsApp (zip o txt) mandado directo por este canal.
+const PALABRA_CLAVE_CHAT_EXPORTADO = /contacto\s+exportado/i;
 
 // Historial de conversación por chat, para que Claude recuerde el
 // contexto entre mensajes. Se guarda en memoria del proceso: se
@@ -64,6 +69,33 @@ app.post("/webhooks/timelines", async (req, res) => {
     }
 
     const audioAdjunto = isAudioAttachment(attachment);
+
+    // Detección de "contacto exportado": si el mensaje trae la palabra
+    // clave y un adjunto zip/txt, se crea el contacto+negocio en HubSpot
+    // (etapa "Base de datos") y se corta aquí, sin pasar por Whisper/Claude.
+    const esChatExportado =
+      text &&
+      PALABRA_CLAVE_CHAT_EXPORTADO.test(text) &&
+      attachment?.filename &&
+      /\.(zip|txt)$/i.test(attachment.filename);
+
+    if (esChatExportado) {
+      try {
+        const archivo = await downloadAttachment(attachment.url);
+        const { contacto, negocio, datos } = await procesarChatExportado(archivo, attachment.filename);
+        console.log(
+          `[chat-exportado] Creado -> contacto ${contacto.id}, negocio ${negocio.id}, proyecto=${datos.proyecto}, asesor=${datos.asesorLabel}`
+        );
+        const confirmacion = datos.proyecto
+          ? `Listo ✅ Cliente "${datos.nombreCliente}" creado en Base de datos (proyecto: ${datos.proyecto}).`
+          : `Listo ✅ Cliente "${datos.nombreCliente}" creado en Base de datos. No detecté el proyecto — revísalo manualmente.`;
+        await sendTextMessage(chatId, confirmacion);
+      } catch (err) {
+        console.error("[chat-exportado] Error:", err);
+        await sendTextMessage(chatId, `❌ No pude procesar el chat exportado: ${err.message}`);
+      }
+      return;
+    }
 
     // El mensaje debe ser nota de voz O texto; si no es ninguno de los
     // dos (ej. imagen, ubicación, sticker), lo ignoramos por ahora.
