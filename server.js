@@ -82,13 +82,19 @@ app.post("/webhooks/timelines", async (req, res) => {
     if (esChatExportado) {
       try {
         const archivo = await downloadAttachment(attachment.url);
-        const { contacto, negocio, datos } = await procesarChatExportado(archivo, attachment.filename);
+        const { contacto, negocio, datos } = await procesarChatExportado(archivo, attachment.filename, text);
         console.log(
-          `[chat-exportado] Creado -> contacto ${contacto.id}, negocio ${negocio.id}, proyecto=${datos.proyecto}, asesor=${datos.asesorLabel}`
+          `[chat-exportado] Creado -> contacto ${contacto.id}, negocio ${negocio.id}, proyecto=${datos.proyecto}, asesor=${datos.asesorLabel}, telefono=${datos.telefono}`
         );
-        const confirmacion = datos.proyecto
-          ? `Listo ✅ Cliente "${datos.nombreCliente}" creado en Base de datos (proyecto: ${datos.proyecto}).`
-          : `Listo ✅ Cliente "${datos.nombreCliente}" creado en Base de datos. No detecté el proyecto — revísalo manualmente.`;
+        const confirmacion =
+          `Listo ✅ Cliente "${datos.nombreCliente}" creado en Base de datos` +
+          (datos.proyecto ? ` (proyecto: ${datos.proyecto})` : ' — no detecté el proyecto, revísalo manualmente') +
+          (datos.telefono
+            ? `. Teléfono guardado: ${datos.telefono}. ` +
+              (datos.chatWhatsappCreado
+                ? 'Chat de WhatsApp Business iniciado con mensaje de retoma de contacto.'
+                : `No se pudo iniciar el chat de WhatsApp (${datos.errorChatWhatsapp}).`)
+            : '. No incluiste un teléfono válido, agrégalo manualmente (así tampoco se pudo iniciar el chat de WhatsApp).');
         await sendTextMessage(chatId, confirmacion);
       } catch (err) {
         console.error("[chat-exportado] Error:", err);
