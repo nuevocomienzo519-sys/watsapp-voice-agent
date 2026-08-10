@@ -70,19 +70,55 @@ app.post("/webhooks/timelines", async (req, res) => {
 
     const audioAdjunto = isAudioAttachment(attachment);
 
+    // --- FILTRO DE CHATS SILENCIADOS ---
+    // Va ANTES de descargar adjuntos, transcribir audio, o procesar chat
+    // exportado: nada de eso debe llamar a la API de TimelinesAI si el
+    // chat está silenciado y no trae la palabra de activación.
+    // Number(chatId) por seguridad: si chatId llega como string desde
+    // parseTimelinesPayload, Set.has() con un number no lo detecta.
+    const chatSilenciado = CHATS_SILENCIADOS.has(Number(chatId));
+    let textoLimpio = text;
+
+    if (chatSilenciado) {
+      if (audioAdjunto) {
+        // No transcribimos: no hay forma de saber si trae la palabra de
+        // activación sin gastar la llamada de descarga/transcripción, así
+        // que en chats silenciados las notas de voz se ignoran siempre.
+        console.log(`Chat ${chatId} silenciado: se ignora nota de voz sin transcribir (no consume API).`);
+        return;
+      }
+
+      const tieneActivacion =
+        !!text && text.toLowerCase().includes(PALABRA_ACTIVACION.toLowerCase());
+
+      if (!tieneActivacion) {
+        console.log(`Chat ${chatId} silenciado, mensaje ignorado (sin palabra de activación).`);
+        return;
+      }
+
+      textoLimpio = text.replace(new RegExp(PALABRA_ACTIVACION, "ig"), "").trim();
+
+      // Si mandaron solo la palabra de activación, sin pregunta, le damos
+      // un texto por defecto para que Claude no reciba un mensaje vacío.
+      if (!textoLimpio) {
+        textoLimpio = "Hola, ¿en qué puedo ayudarte?";
+      }
+    }
+    // --- FIN FILTRO DE CHATS SILENCIADOS ---
+
     // Detección de "contacto exportado": si el mensaje trae la palabra
     // clave y un adjunto zip/txt, se crea el contacto+negocio en HubSpot
     // (etapa "Base de datos") y se corta aquí, sin pasar por Whisper/Claude.
     const esChatExportado =
-      text &&
-      PALABRA_CLAVE_CHAT_EXPORTADO.test(text) &&
+      textoLimpio &&
+      PALABRA_CLAVE_CHAT_EXPORTADO.test(textoLimpio) &&
       attachment?.filename &&
       /\.(zip|txt)$/i.test(attachment.filename);
 
     if (esChatExportado) {
       try {
         const archivo = await downloadAttachment(attachment.url);
-        const { contacto, negocio, datos } = await procesarChatExportado(archivo, attachment.filename, text);
+        const { contacto, negocio, datos } = await procesarChatExportado(archivo, attachment.filename, textoLimpio);
         console.log(
           `[chat-exportado] Creado -> contacto ${contacto.id}, negocio ${negocio.id}, proyecto=${datos.proyecto}, asesor=${datos.asesorLabel}, telefono=${datos.telefono}`
         );
@@ -105,7 +141,7 @@ app.post("/webhooks/timelines", async (req, res) => {
 
     // El mensaje debe ser nota de voz O texto; si no es ninguno de los
     // dos (ej. imagen, ubicación, sticker), lo ignoramos por ahora.
-    if (!audioAdjunto && !text) {
+    if (!audioAdjunto && !textoLimpio) {
       return;
     }
 
@@ -114,35 +150,14 @@ app.post("/webhooks/timelines", async (req, res) => {
 
     if (inputMode === "audio") {
       // 2a. Descargar y transcribir la nota de voz del cliente
+      // (nunca llega aquí si el chat está silenciado: se filtró arriba)
       const audioIn = await downloadAttachment(attachment.url);
       userText = await transcribeAudio(audioIn, attachment.filename || "nota.ogg");
       console.log("Transcripción:", userText);
     } else {
       // 2b. Mensaje de texto: se usa directo, sin Whisper.
-      userText = text;
+      userText = textoLimpio;
       console.log("Texto recibido:", userText);
-    }
-
-    // Chats silenciados: se ignora todo, salvo que el mensaje incluya la
-    // palabra clave de activación (en ese caso se le quita la palabra
-    // antes de mandarlo a Claude, para que no confunda la respuesta).
-    if (CHATS_SILENCIADOS.has(chatId)) {
-      const tieneActivacion = userText
-        .toLowerCase()
-        .includes(PALABRA_ACTIVACION.toLowerCase());
-
-      if (!tieneActivacion) {
-        console.log(`Chat ${chatId} silenciado, mensaje ignorado (sin palabra de activación).`);
-        return;
-      }
-
-      userText = userText.replace(new RegExp(PALABRA_ACTIVACION, "ig"), "").trim();
-
-      // Si mandaron solo la palabra de activación, sin pregunta, le damos
-      // un texto por defecto para que Claude no reciba un mensaje vacío.
-      if (!userText) {
-        userText = "Hola, ¿en qué puedo ayudarte?";
-      }
     }
 
     // 3. Generar la respuesta con Claude (decide también el formato de
