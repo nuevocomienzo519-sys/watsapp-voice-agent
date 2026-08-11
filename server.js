@@ -200,6 +200,89 @@ app.post("/webhooks/timelines", async (req, res) => {
   }
 });
 
+// Página temporal para conectar el número de WhatsApp a la Cloud API vía
+// Embedded Signup, con la opción de coexistencia (mantener la app normal
+// de WhatsApp Business funcionando a la par). Solo se usa una vez durante
+// la migración; se puede quitar después si se quiere.
+app.get("/conectar-whatsapp", (_req, res) => {
+  res.send(`<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Conectar WhatsApp - Nuevo Comienzo</title>
+  <style>
+    body { font-family: sans-serif; max-width: 480px; margin: 60px auto; text-align: center; }
+    button { background: #25D366; color: white; border: none; padding: 14px 28px; font-size: 16px; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #1ebe5b; }
+    #resultado { margin-top: 20px; text-align: left; white-space: pre-wrap; background: #f4f4f4; padding: 12px; border-radius: 6px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h2>Conectar número de WhatsApp</h2>
+  <p>Da clic al botón y sigue el flujo. Cuando te pregunte, elige la opción de conectar tu cuenta existente de WhatsApp Business app.</p>
+  <button onclick="launchWhatsAppSignup()">Conectar WhatsApp</button>
+  <div id="resultado"></div>
+
+  <script>
+    window.fbAsyncInit = function () {
+      FB.init({
+        appId: '1068574982377434',
+        cookie: true,
+        xfbml: true,
+        version: 'v22.0',
+      });
+    };
+    (function (d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s);
+      js.id = id;
+      js.src = 'https://connect.facebook.net/es_LA/sdk.js';
+      fjs.parentNode.insertBefore(js, fjs);
+    })(document, 'script', 'facebook-jssdk');
+
+    // Captura los datos que WhatsApp manda por postMessage al completar el flujo
+    window.addEventListener('message', (event) => {
+      if (!event.origin.includes('facebook.com')) return;
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'WA_EMBEDDED_SIGNUP') {
+          document.getElementById('resultado').textContent =
+            'Datos recibidos de WhatsApp:\\n' + JSON.stringify(data, null, 2);
+        }
+      } catch (e) {
+        // ignorar mensajes que no son JSON
+      }
+    });
+
+    function launchWhatsAppSignup() {
+      FB.login(
+        function (response) {
+          if (response.status === 'connected' && response.authResponse) {
+            const code = response.authResponse.code;
+            document.getElementById('resultado').textContent =
+              'Código de autorización recibido:\\n' + code +
+              '\\n\\nManda captura de esto.';
+          } else {
+            document.getElementById('resultado').textContent = 'Cancelaste el inicio de sesión o no autorizaste todo.';
+          }
+        },
+        {
+          config_id: '3312158045654863',
+          response_type: 'code',
+          override_default_response_type: true,
+          extras: {
+            sessionInfoVersion: 3,
+            featureType: 'whatsapp_business_app_onboarding',
+          },
+        }
+      );
+    }
+  </script>
+</body>
+</html>`);
+});
+
 app.get("/health", (_req, res) => res.send("ok"));
 
 const port = process.env.PORT || 3000;
