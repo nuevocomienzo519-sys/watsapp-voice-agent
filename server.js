@@ -7,9 +7,11 @@ const { synthesizeSpeech } = require("./lib/tts");
 const { convertToOggOpus } = require("./lib/audioConvert");
 const { parseTimelinesPayload, isAudioAttachment } = require("./lib/timelinesPayload");
 const { procesarChatExportado } = require("./lib/chatExportadoCore");
+const extraerFotosRouter = require("./routes/extraerFotos");
 
 const app = express();
 app.use(express.json({ limit: "20mb" }));
+app.use(extraerFotosRouter);
 
 // Evita procesar el mismo mensaje dos veces si TimelinesAI reintenta el webhook.
 const processedMessageIds = new Set();
@@ -206,6 +208,11 @@ app.post("/webhooks/timelines", async (req, res) => {
     console.error("Error procesando el mensaje:", err);
   }
 });
+
+// Endpoint temporal para extraer y descargar en .zip las fotos de un día
+// específico en un chat/grupo de TimelinesAI. Ver routes/extraerFotos.js
+// para el detalle — se usa entrando directo desde el navegador a
+// /extraer-fotos?secret=TU_WEBHOOK_SECRET
 
 // Página temporal para conectar el número de WhatsApp a la Cloud API vía
 // Embedded Signup, con la opción de coexistencia (mantener la app normal
