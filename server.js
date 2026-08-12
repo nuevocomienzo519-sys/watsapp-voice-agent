@@ -20,10 +20,6 @@ const processedMessageIds = new Set();
 const CHATS_SILENCIADOS = new Set([57693202]);
 const PALABRA_ACTIVACION = "@asistentewaba";
 
-// Palabra clave para disparar la creación automática en HubSpot de un
-// chat exportado de WhatsApp (zip o txt) mandado directo por este canal.
-const PALABRA_CLAVE_CHAT_EXPORTADO = /contacto\s+exportado/i;
-
 // Historial de conversación por chat, para que Claude recuerde el
 // contexto entre mensajes. Se guarda en memoria del proceso: se
 // reinicia si el servicio se reinicia o redespliega en Render.
@@ -106,31 +102,42 @@ app.post("/webhooks/timelines", async (req, res) => {
     }
     // --- FIN FILTRO DE CHATS SILENCIADOS ---
 
-    // Detección de "contacto exportado": si el mensaje trae la palabra
-    // clave y un adjunto zip/txt, se crea el contacto+negocio en HubSpot
-    // (etapa "Base de datos") y se corta aquí, sin pasar por Whisper/Claude.
+    // Detección de "contacto exportado": basta con mandar el archivo
+    // .zip/.txt del export de WhatsApp — ya no requiere ninguna palabra
+    // clave en el mensaje. Se crea el contacto+negocio en HubSpot (etapa
+    // "Base de datos") y se corta aquí, sin pasar por Whisper/Claude. El
+    // texto del mensaje (si lo hay) se sigue usando como respaldo para el
+    // teléfono manual (ver extraerTelefono en lib/parseChatExport.js).
     const esChatExportado =
-      textoLimpio &&
-      PALABRA_CLAVE_CHAT_EXPORTADO.test(textoLimpio) &&
       attachment?.filename &&
       /\.(zip|txt)$/i.test(attachment.filename);
 
     if (esChatExportado) {
       try {
         const archivo = await downloadAttachment(attachment.url);
-        const { contacto, negocio, datos } = await procesarChatExportado(archivo, attachment.filename, textoLimpio);
+        const { contacto, negocio, datos } = await procesarChatExportado(
+          archivo,
+          attachment.filename,
+          textoLimpio,
+          chatId
+        );
         console.log(
           `[chat-exportado] Creado -> contacto ${contacto.id}, negocio ${negocio.id}, proyecto=${datos.proyecto}, asesor=${datos.asesorLabel}, telefono=${datos.telefono}`
         );
         const confirmacion =
-          `Listo ✅ Cliente "${datos.nombreCliente}" creado en Base de datos` +
-          (datos.proyecto ? ` (proyecto: ${datos.proyecto})` : ' — no detecté el proyecto, revísalo manualmente') +
+          `📦 Archivo: ${datos.filenameOriginal}\n\n` +
+          `✅ Cliente: ${datos.nombreCliente}\n` +
+          (datos.proyecto
+            ? `📁 Proyecto: ${datos.proyecto}\n`
+            : `⚠️ Proyecto: no detectado, revisar manualmente\n`) +
+          (datos.asesorLabel ? `🧑‍💼 Asesor: ${datos.asesorLabel}\n` : '') +
+          `📍 Etapa: Base de datos (no se mueve sola, solo tú la cambias manualmente)\n\n` +
+          `📎 ${datos.resumenAdjuntos}\n\n` +
           (datos.telefono
-            ? `. Teléfono guardado: ${datos.telefono}. ` +
-              (datos.chatWhatsappCreado
-                ? 'Chat de WhatsApp Business iniciado con mensaje de retoma de contacto.'
-                : `No se pudo iniciar el chat de WhatsApp (${datos.errorChatWhatsapp}).`)
-            : '. No incluiste un teléfono válido, agrégalo manualmente (así tampoco se pudo iniciar el chat de WhatsApp).');
+            ? datos.tarjetaEnviada
+              ? '📇 Tarjeta de contacto compartida aquí mismo.'
+              : `⚠️ No se pudo compartir la tarjeta de contacto (${datos.errorTarjeta}).`
+            : '⚠️ No se detectó teléfono válido, agrégalo manualmente en HubSpot.');
         await sendTextMessage(chatId, confirmacion);
       } catch (err) {
         console.error("[chat-exportado] Error:", err);
