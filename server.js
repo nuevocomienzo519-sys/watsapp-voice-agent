@@ -8,10 +8,12 @@ const { convertToOggOpus } = require("./lib/audioConvert");
 const { parseTimelinesPayload, isAudioAttachment } = require("./lib/timelinesPayload");
 const { procesarChatExportado } = require("./lib/chatExportadoCore");
 const extraerFotosRouter = require("./routes/extraerFotos");
+const openaiProxyRouter = require("./routes/openaiProxy");
 
 const app = express();
 app.use(express.json({ limit: "20mb" }));
 app.use(extraerFotosRouter);
+app.use(openaiProxyRouter);
 
 // Evita procesar el mismo mensaje dos veces si TimelinesAI reintenta el webhook.
 const processedMessageIds = new Set();
