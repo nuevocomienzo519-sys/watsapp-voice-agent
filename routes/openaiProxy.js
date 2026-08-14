@@ -1,4 +1,3 @@
-
 // routes/openaiProxy.js
 // Proxy para el generador de imagen/video (generador_openai.html) de
 // marketing Diamante/Santuario. Evita el bloqueo de CORS al llamar a la
@@ -18,6 +17,17 @@ const express = require("express");
 const router = express.Router();
 const OPENAI_BASE = "https://api.openai.com";
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
+
+// Habilita CORS para que el navegador (generador_openai.html) pueda llamar
+// a este servidor. Sin esto, el navegador bloquea la respuesta aunque el
+// servidor sí haya procesado la petición correctamente.
+router.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, x-proxy-secret");
+  if (req.method === "OPTIONS") return res.sendStatus(200);
+  next();
+});
 
 function autorizado(req) {
   const secret = req.query.secret || req.headers["x-proxy-secret"];
