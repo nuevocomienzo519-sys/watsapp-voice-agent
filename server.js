@@ -6,7 +6,17 @@ const { generateReply } = require("./lib/llm");
 const { synthesizeSpeech } = require("./lib/tts");
 const { convertToOggOpus } = require("./lib/audioConvert");
 const { parseTimelinesPayload, isAudioAttachment } = require("./lib/timelinesPayload");
-const { procesarChatExportado } = require("./lib/chatExportadoCore");
+const {
+  procesarChatExportado,
+  actualizarTelefonoContacto,
+  enviarTarjetaContacto,
+} = require("./lib/chatExportadoCore");
+const { extraerTelefono } = require("./lib/parseChatExport");
+const {
+  guardarPendiente,
+  leerPendiente,
+  borrarPendiente,
+} = require("./lib/confirmacionesPendientes");
 const extraerFotosRouter = require("./routes/extraerFotos");
 const openaiProxyRouter = require("./routes/openaiProxy");
 
@@ -137,15 +147,50 @@ app.post("/webhooks/timelines", async (req, res) => {
           (datos.asesorLabel ? `🧑‍💼 Asesor: ${datos.asesorLabel}\n` : '') +
           `📍 Etapa: Base de datos (no se mueve sola, solo tú la cambias manualmente)\n\n` +
           `📎 ${datos.resumenAdjuntos}\n\n` +
+          `💬 Resumen: ${datos.resumenConversacion || 'no se pudo generar.'}\n\n` +
           (datos.telefono
-            ? datos.tarjetaEnviada
-              ? '📇 Tarjeta de contacto compartida aquí mismo.'
-              : `⚠️ No se pudo compartir la tarjeta de contacto (${datos.errorTarjeta}).`
+            ? `📱 Teléfono detectado: ${datos.telefono}\n¿Es correcto? Responde "sí" o mándame el número correcto y te confirmo con la tarjeta de contacto.`
             : '⚠️ No se detectó teléfono válido, agrégalo manualmente en HubSpot.');
         await sendTextMessage(chatId, confirmacion);
+
+        if (datos.telefono) {
+          guardarPendiente(chatId, {
+            contactoId: contacto.id,
+            telefono: datos.telefono,
+            nombreCliente: datos.nombreCliente,
+          });
+        }
       } catch (err) {
         console.error("[chat-exportado] Error:", err);
         await sendTextMessage(chatId, `❌ No pude procesar el chat exportado: ${err.message}`);
+      }
+      return;
+    }
+
+    // --- Confirmación/corrección de teléfono pendiente de un chat exportado ---
+    const pendiente = leerPendiente(chatId);
+    if (pendiente && textoLimpio) {
+      try {
+        const posibleCorreccion = extraerTelefono(textoLimpio);
+        const telefonoFinal = posibleCorreccion || pendiente.telefono;
+
+        if (posibleCorreccion && posibleCorreccion !== pendiente.telefono) {
+          await actualizarTelefonoContacto(pendiente.contactoId, posibleCorreccion);
+        }
+        await enviarTarjetaContacto(chatId, pendiente.nombreCliente, telefonoFinal);
+        await sendTextMessage(
+          chatId,
+          `📇 Tarjeta enviada con ${telefonoFinal}${
+            posibleCorreccion && posibleCorreccion !== pendiente.telefono
+              ? ' (corregido en HubSpot).'
+              : '.'
+          }`
+        );
+      } catch (err) {
+        console.error('[chat-exportado] Error en confirmación de teléfono:', err);
+        await sendTextMessage(chatId, `❌ No pude confirmar/enviar la tarjeta: ${err.message}`);
+      } finally {
+        borrarPendiente(chatId);
       }
       return;
     }
