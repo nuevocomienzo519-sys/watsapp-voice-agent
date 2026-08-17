@@ -307,7 +307,7 @@
     const portada = modeloActivo.portada ? urlAbsoluta(modeloActivo.portada) : "";
     compartir({
       titulo: modeloActivo.nombre,
-      texto: `${modeloActivo.nombre}${modeloActivo.precioFormato ? " — " + modeloActivo.precioFormato : ""} · Nuevo Comienzo`,
+      texto: `${modeloActivo.nombre}${modeloActivo.precioFormato ? " — " + modeloActivo.precioFormato : ""} · Miguel Mondragon`,
       url: portada,
     });
   });
