@@ -287,6 +287,14 @@ button { font-family: inherit; cursor: pointer; }
   color: var(--crema);
 }
 
+/* El atributo HTML "hidden" por sí solo NO alcanza a ganarle a la regla
+   de arriba (que fija display:flex), así que hay que forzarlo aquí con
+   más especificidad — si no, el visor queda visible desde el primer
+   segundo, tapando toda la página. */
+.visor[hidden] {
+  display: none;
+}
+
 .visor__top {
   display: flex;
   align-items: center;
