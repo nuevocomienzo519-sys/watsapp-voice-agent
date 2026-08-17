@@ -45,5 +45,143 @@
     { "banco": "Banorte", "producto": "Terreno urbanizado", "valor_vivienda": 660000, "monto_credito": 462000, "plazo_meses": 180, "tasa": "10.68%", "pago_mensual": 5726.87, "ingreso_requerido": 11453.74, "enganche": 198000 },
     { "banco": "Banorte", "producto": "Terreno urbanizado", "valor_vivienda": 825000, "monto_credito": 577500, "plazo_meses": 180, "tasa": "10.68%", "pago_mensual": 7096.09, "ingreso_requerido": 14192.17, "enganche": 247500 }
   ],
-  "notas": "Todas las cifras son cotizaciones de referencia (versión 13-14 de julio de 2026); la tasa, aforo y condiciones finales dependen de la evaluación de crédito real del cliente. Siempre aclarar esto al compartir un monto."
+  "notas": "Todas las cifras son cotizaciones de referencia (versión 13-14 de julio de 2026); la tasa, aforo y condiciones finales dependen de la evaluación de crédito real del cliente. Siempre aclarar esto al compartir un monto.",
+
+  "_instrucciones_simulaciones_por_propiedad": "Cotizaciones reales de Confiat, ligadas por el nombre de modelo que ellos mismos usaron (carpeta de Drive 'Hipotecarios Confiat', imágenes 'MODELO ...'). Cuando el precio_cotizado no coincide exactamente con el precio_actual del modelo en la galería, es porque la cotización de Confiat es de mediados de julio 2026 y el precio de venta pudo haber cambiado desde entonces — el agente debe aclarar esto al cliente y ofrecer pedir una cotización actualizada, no asumir que el pago mensual es exacto para el precio de hoy. Sigue llenando los 'TODO' conforme lleguen más cotizaciones de Confiat.",
+  "simulaciones_por_propiedad": [
+    {
+      "proyecto": "Diamante",
+      "modelo": "Diamante",
+      "precio_actual": 2900000,
+      "precio_cotizado": 2900000,
+      "cotizaciones": [
+        { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "plazo_anos": 20, "tasa": "11.35%", "monto_credito": 2610000, "pago_mensual": 28736.10, "ingreso_requerido": "47,894.00-60,310.00", "enganche": 290000 },
+        { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "plazo_anos": 20, "tasa": "10.30%", "cat": "12.0%", "monto_credito": 2610000, "pago_mensual": 28784.41, "ingreso_requerido": 42330.02, "enganche": 290000 }
+      ]
+    },
+    {
+      "proyecto": "Diamante",
+      "modelo": "Esmeralda",
+      "precio_actual": 3200000,
+      "precio_cotizado": 3200000,
+      "cotizaciones": [
+        { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "plazo_anos": 20, "tasa": "10.30%", "cat": "12.0%", "monto_credito": 2880000, "pago_mensual": 31732.11, "ingreso_requerido": 46664.87, "enganche": 320000 },
+        { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "plazo_anos": 20, "tasa": "11.35%", "monto_credito": 2880000, "pago_mensual": 31709, "ingreso_requerido": 52848, "enganche": 320000 }
+      ]
+    },
+    {
+      "proyecto": "Diamante",
+      "modelo": "Esmeralda con Alberca",
+      "precio_actual": 5200000,
+      "precio_cotizado": 5200000,
+      "cotizaciones": [
+        { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "plazo_anos": 20, "tasa": "11.35%", "monto_credito": 4680000, "pago_mensual": 51526.80, "ingreso_requerido": "85,878.00-108,143.00", "enganche": 520000 },
+        { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "plazo_anos": 20, "tasa": "10.30%", "cat": "11.9%", "monto_credito": 4680000, "pago_mensual": 51383.43, "ingreso_requerido": 75563.87, "enganche": 520000 }
+      ]
+    },
+    {
+      "proyecto": "Diamante",
+      "modelo": "Terreno Lote Manzana 3 Frente a Parque",
+      "precio_actual": "TODO (confirmar precio actual de este lote)",
+      "precio_cotizado": 825000,
+      "cotizaciones": [
+        { "banco": "Banorte", "producto": "Terreno urbanizado", "plazo_meses": 180, "tasa": "10.68%", "monto_credito": 577500, "pago_mensual": 7096.09, "ingreso_requerido": 14192.17, "enganche": 247500 }
+      ],
+      "nota": "Ligado por el nombre de archivo de Confiat 'PARQUE MANZANA 3.jpeg' — falta que confirmes si el precio de venta actual de este lote sigue siendo $825,000."
+    },
+    {
+      "proyecto": "Diamante",
+      "modelo": "Terreno Lote Manzana 2 Frente a Parque",
+      "precio_actual": "TODO (confirmar precio actual de este lote)",
+      "precio_cotizado": "TODO",
+      "cotizaciones": "TODO",
+      "nota": "Confiat mandó una cotización de $825,000 (Banorte) llamada 'PARQUE MANDANA 2.jpeg', pero hay DOS modelos de terreno 'Manzana 2' en la galería (este y 'Terreno Manzana 2 Junto a Parque') y no está claro a cuál de los dos corresponde — confírmame cuál para ligarla correctamente."
+    },
+    {
+      "proyecto": "Diamante",
+      "modelo": "Terreno Manzana 2 Junto a Parque",
+      "precio_actual": "TODO (confirmar precio actual de este lote)",
+      "precio_cotizado": "TODO",
+      "cotizaciones": "TODO",
+      "nota": "Ver nota en 'Terreno Lote Manzana 2 Frente a Parque' — la cotización de $825,000 (Banorte, 'PARQUE MANDANA 2.jpeg') podría ser de este lote o del otro 'Manzana 2', falta confirmar cuál."
+    },
+    {
+      "proyecto": "Diamante",
+      "modelo": "Terreno Lote Manzana 1 Entrada Caseta",
+      "precio_actual": "TODO (confirmar precio actual de este lote)",
+      "precio_cotizado": "TODO",
+      "cotizaciones": "TODO",
+      "nota": "Posible candidato: cotización de $660,000 (Banorte, archivo 'PARQUE PET FRIENDLY.jpeg') — el nombre no dice a qué manzana corresponde, falta que confirmes si es este lote."
+    },
+    {
+      "proyecto": "Santuario",
+      "modelo": "Esmeralda Roof Garden",
+      "precio_actual": 3200000,
+      "precio_cotizado": 3200000,
+      "cotizaciones": [
+        { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "plazo_anos": 20, "tasa": "10.30%", "cat": "12.0%", "monto_credito": 2880000, "pago_mensual": 31732.11, "ingreso_requerido": 46664.87, "enganche": 320000 },
+        { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "plazo_anos": 20, "tasa": "11.35%", "monto_credito": 2880000, "pago_mensual": 31709, "ingreso_requerido": 52848, "enganche": 320000 }
+      ],
+      "nota": "Confiat no mandó una imagen específica para 'Esmeralda Roof Garden' — se usa la misma cotización de 'Esmeralda' (Diamante) porque comparten el mismo precio ($3,200,000). Confirma si Confiat trata esto como el mismo producto o si hace falta una cotización aparte."
+    },
+    {
+      "proyecto": "Santuario",
+      "modelo": "Rubí",
+      "precio_actual": 1780000,
+      "precio_cotizado": 1700000,
+      "cotizaciones": [
+        { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "plazo_anos": 20, "tasa": "10.30%", "monto_credito": 1530000, "pago_mensual": 16993.62, "ingreso_requerido": 24990.62, "enganche": 170000 }
+      ],
+      "nota": "El precio de venta actual ($1,780,000) es $80,000 más alto que el precio sobre el que Confiat cotizó ($1,700,000, mediados de julio) — probablemente el precio subió después de la cotización. Aclarar al cliente y pedir cotización actualizada antes de dar el pago mensual como definitivo."
+    },
+    {
+      "proyecto": "Santuario",
+      "modelo": "Santi",
+      "precio_actual": 1165000,
+      "precio_cotizado": 1150000,
+      "cotizaciones": [
+        { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "plazo_anos": 20, "tasa": "10.30%", "cat": "12.3%", "monto_credito": 1035000, "pago_mensual": 11589.51, "ingreso_requerido": 17043.40, "enganche": 115000 },
+        { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "plazo_anos": 20, "tasa": "11.35%", "monto_credito": 1035000, "pago_mensual": 11395, "ingreso_requerido": 18992, "enganche": 115000 }
+      ],
+      "nota": "Precio actual ($1,165,000) $15,000 arriba del precio cotizado ($1,150,000) — diferencia menor, pero aclarar al cliente igual."
+    },
+    {
+      "proyecto": "Santuario",
+      "modelo": "Santi Ampliada",
+      "precio_actual": 1289000,
+      "precio_cotizado": 1450000,
+      "cotizaciones": [
+        { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "plazo_anos": 20, "tasa": "10.30%", "cat": "12.2%", "monto_credito": 1305000, "pago_mensual": 14537.21, "ingreso_requerido": 21378.25, "enganche": 145000 },
+        { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "plazo_anos": 20, "tasa": "11.35%", "monto_credito": 1305000, "pago_mensual": 14368, "ingreso_requerido": 23947, "enganche": 145000 }
+      ],
+      "nota": "OJO: el precio cotizado por Confiat ($1,450,000) es MÁS ALTO que el precio de venta actual ($1,289,000, diferencia de $161,000) — esta es la diferencia más grande de todos los modelos. El pago mensual real hoy sería más bajo que lo que muestra esta cotización. Muy recomendable pedir una cotización nueva a Confiat con el precio actual antes de compartir un monto al cliente."
+    },
+    {
+      "proyecto": "Santuario",
+      "modelo": "Santi En Esquina",
+      "precio_actual": 1450000,
+      "precio_cotizado": 1400000,
+      "cotizaciones": [
+        { "banco": "Santander", "producto": "Hipoteca Free (adquisición)", "plazo_anos": 20, "tasa": "11.35%", "monto_credito": 1260000, "pago_mensual": 13872.60, "ingreso_requerido": "23,121.00-29,115.00", "enganche": 140000 },
+        { "banco": "HSBC", "producto": "Comercial hipoteca (adquisición)", "plazo_anos": 20, "tasa": "10.30%", "cat": "12.2%", "monto_credito": 1260000, "pago_mensual": 14045.92, "ingreso_requerido": 20655.77, "enganche": 140000 }
+      ],
+      "nota": "Precio actual ($1,450,000) $50,000 arriba del precio cotizado ($1,400,000) — aclarar al cliente."
+    },
+    {
+      "proyecto": "Santuario",
+      "modelo": "Santi Esquina Ampliada",
+      "precio_actual": 1480000,
+      "precio_cotizado": "TODO",
+      "cotizaciones": "TODO",
+      "nota": "Sin cotización de Confiat con este nombre todavía."
+    },
+    {
+      "proyecto": "Santuario",
+      "modelo": "Santi Esquina Excedente",
+      "precio_actual": 1780000,
+      "precio_cotizado": "TODO",
+      "cotizaciones": "TODO",
+      "nota": "Sin cotización de Confiat con este nombre todavía. Comparte precio con Rubí ($1,780,000/$1,700,000 cotizado) pero no se asume que aplique la misma cotización sin confirmarlo — pide una específica para este modelo."
+    }
+  ]
 }
