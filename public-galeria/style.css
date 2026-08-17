@@ -164,6 +164,86 @@ button { font-family: inherit; cursor: pointer; }
   font-family: inherit;
 }
 
+/* ---------- Selección múltiple ---------- */
+
+.btn--seleccion {
+  background: #fff;
+  border: 1px solid var(--linea);
+  color: var(--tinta);
+  flex-shrink: 0;
+}
+
+.btn--seleccion[aria-pressed="true"] {
+  background: var(--verde);
+  border-color: var(--verde);
+  color: var(--crema);
+}
+
+.btn--ghost {
+  background: transparent;
+  border: 1px solid rgba(245, 239, 228, 0.4);
+  color: var(--crema);
+}
+
+.card__check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  border: 2px solid #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.card--modo-seleccion .card__check {
+  display: flex;
+}
+
+.card--seleccionada .card__check {
+  background: var(--verde);
+  border-color: var(--verde);
+}
+
+.card--seleccionada .card__check::after {
+  content: "";
+  width: 10px;
+  height: 6px;
+  border-left: 2px solid var(--crema);
+  border-bottom: 2px solid var(--crema);
+  transform: rotate(-45deg) translateY(-1px);
+}
+
+.card--seleccionada { outline: 2px solid var(--laton); }
+
+.barra-seleccion {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 40;
+  background: var(--verde-oscuro);
+  color: var(--crema);
+  border-radius: 999px;
+  padding: 10px 10px 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--sombra);
+  font-size: 13.5px;
+}
+
+.barra-seleccion[hidden] { display: none; }
+
+.barra-seleccion__botones {
+  display: flex;
+  gap: 8px;
+}
+
 /* ---------- Grid & Cards ---------- */
 
 .grid {

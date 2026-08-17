@@ -23,6 +23,12 @@
     visorTiras: document.getElementById("visorTiras"),
     visorCompartirModelo: document.getElementById("visorCompartirModelo"),
     visorCompartirFoto: document.getElementById("visorCompartirFoto"),
+
+    btnModoSeleccion: document.getElementById("btnModoSeleccion"),
+    barraSeleccion: document.getElementById("barraSeleccion"),
+    seleccionContador: document.getElementById("seleccionContador"),
+    btnCancelarSeleccion: document.getElementById("btnCancelarSeleccion"),
+    btnCompartirSeleccion: document.getElementById("btnCompartirSeleccion"),
   };
 
   let manifest = null;
@@ -30,6 +36,9 @@
   let modeloActivo = null;
   let tabActiva = "fotos"; // "fotos" | "fotosAdicionales"
   let indiceActivo = 0;
+
+  let modoSeleccion = false;
+  const seleccionados = new Map(); // clave "proyectoId/modeloId" -> modelo
 
   // ---------- Carga de datos ----------
 
@@ -48,8 +57,28 @@
       return;
     }
     proyectoActivo = manifest.proyectos[0]?.id || null;
+
+    // Deep-link: si la URL trae #proyectoId/modeloId (viene del redirect de
+    // /galeria/modelo/:proyectoId/:modeloId), abrimos ese modelo directo,
+    // en vez de mostrar siempre el primer proyecto.
+    const hash = decodeURIComponent(location.hash.replace(/^#/, ""));
+    const [hashProyecto, hashModelo] = hash.split("/");
+    if (hashProyecto && hashModelo) {
+      const proyecto = manifest.proyectos.find((p) => p.id === hashProyecto);
+      const modelo = proyecto?.modelos.find((m) => m.id === hashModelo);
+      if (proyecto && modelo) {
+        proyectoActivo = proyecto.id;
+      }
+    }
+
     pintarTabsProyecto();
     pintarGrid();
+
+    if (hashProyecto && hashModelo) {
+      const proyecto = manifest.proyectos.find((p) => p.id === hashProyecto);
+      const modelo = proyecto?.modelos.find((m) => m.id === hashModelo);
+      if (modelo) abrirVisor(modelo);
+    }
   }
 
   function pintarEsqueletos() {
@@ -121,7 +150,12 @@
 
     modelos.forEach((m) => {
       const card = document.createElement("button");
-      card.className = "card";
+      const claveSeleccion = `${proyectoActivo}/${m.id}`;
+      const estaSeleccionada = seleccionados.has(claveSeleccion);
+      card.className =
+        "card" +
+        (modoSeleccion ? " card--modo-seleccion" : "") +
+        (estaSeleccionada ? " card--seleccionada" : "");
       card.style.textAlign = "left";
       card.style.border = "1px solid var(--linea)";
       card.setAttribute("type", "button");
@@ -132,6 +166,7 @@
       card.innerHTML = `
         <div class="card__media">
           ${m.portada ? `<img src="${m.portada}" alt="${m.nombre}" loading="lazy" />` : ""}
+          <span class="card__check" aria-hidden="true"></span>
           <span class="card__badge">${badge}</span>
           <span class="card__count">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="2.5" width="10" height="7.5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><path d="M1 8l2.7-2.7a1 1 0 0 1 1.4 0L8 8" stroke="currentColor" stroke-width="1.1"/><circle cx="8.3" cy="4.3" r="0.9" fill="currentColor"/></svg>
@@ -147,9 +182,98 @@
           }
         </div>`;
 
-      card.addEventListener("click", () => abrirVisor(m));
+      card.addEventListener("click", () => {
+        if (modoSeleccion) {
+          toggleSeleccion(claveSeleccion, m);
+        } else {
+          abrirVisor(m);
+        }
+      });
       els.grid.appendChild(card);
     });
+  }
+
+  // ---------- Selección múltiple ----------
+
+  function toggleSeleccion(clave, modelo) {
+    if (seleccionados.has(clave)) {
+      seleccionados.delete(clave);
+    } else {
+      seleccionados.set(clave, modelo);
+    }
+    pintarGrid();
+    actualizarBarraSeleccion();
+  }
+
+  function actualizarBarraSeleccion() {
+    const n = seleccionados.size;
+    els.barraSeleccion.hidden = !modoSeleccion || n === 0;
+    els.seleccionContador.textContent =
+      n === 1 ? "1 seleccionada" : `${n} seleccionadas`;
+  }
+
+  els.btnModoSeleccion.addEventListener("click", () => {
+    modoSeleccion = !modoSeleccion;
+    els.btnModoSeleccion.setAttribute("aria-pressed", String(modoSeleccion));
+    els.btnModoSeleccion.textContent = modoSeleccion ? "Cancelar selección" : "Seleccionar";
+    if (!modoSeleccion) {
+      seleccionados.clear();
+    }
+    pintarGrid();
+    actualizarBarraSeleccion();
+  });
+
+  els.btnCancelarSeleccion.addEventListener("click", () => {
+    seleccionados.clear();
+    pintarGrid();
+    actualizarBarraSeleccion();
+  });
+
+  els.btnCompartirSeleccion.addEventListener("click", () => {
+    compartirVarios(Array.from(seleccionados.values()));
+  });
+
+  // Comparte varias fotos (una portada por modelo seleccionado) en una
+  // sola indicación. Si el navegador soporta compartir archivos (Web
+  // Share API con "files" — funciona en Chrome/Safari de celular), se
+  // adjuntan todas las imágenes de una vez, como si se compartieran
+  // varias fotos juntas desde la galería del teléfono. Si no, se abre
+  // WhatsApp con un mensaje de texto que trae un link por modelo (cada
+  // uno con vista previa propia, gracias a /galeria/modelo/...).
+  async function compartirVarios(modelos) {
+    if (!modelos.length) return;
+
+    try {
+      const archivos = await Promise.all(
+        modelos.map(async (m, i) => {
+          const res = await fetch(m.portada);
+          const blob = await res.blob();
+          const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+          return new File([blob], `${m.nombre || "foto"}-${i + 1}.${ext}`, { type: blob.type });
+        })
+      );
+
+      if (navigator.canShare && navigator.canShare({ files: archivos })) {
+        await navigator.share({
+          files: archivos,
+          title: "Nuevo Comienzo",
+          text: modelos.map((m) => `${m.nombre}${m.precioFormato ? " — " + m.precioFormato : ""}`).join("\n"),
+        });
+        return;
+      }
+    } catch (err) {
+      if (err && err.name === "AbortError") return; // el usuario canceló
+      console.error("No se pudo compartir como archivos, usando el respaldo de links:", err);
+    }
+
+    // Respaldo: WhatsApp con un link por modelo (cada uno con su propia
+    // vista previa de imagen al pegarse en el chat).
+    const lineas = modelos.map((m) => {
+      const url = urlAbsoluta(`modelo/${proyectoActivo}/${m.id}`);
+      return `${m.nombre}${m.precioFormato ? " — " + m.precioFormato : ""}\n${url}`;
+    });
+    const mensaje = encodeURIComponent(lineas.join("\n\n"));
+    window.open(`https://wa.me/?text=${mensaje}`, "_blank");
   }
 
   els.buscador.addEventListener("input", pintarGrid);
@@ -304,11 +428,15 @@
 
   els.visorCompartirModelo.addEventListener("click", () => {
     if (!modeloActivo) return;
-    const portada = modeloActivo.portada ? urlAbsoluta(modeloActivo.portada) : "";
+    // Se comparte el link de /galeria/modelo/..., no el link directo a la
+    // imagen: ese link trae etiquetas Open Graph (og:image, og:title), así
+    // que al pegarlo en WhatsApp o Facebook se ve la foto de portada como
+    // vista previa, en vez de un link pelón.
+    const url = urlAbsoluta(`modelo/${proyectoActivo}/${modeloActivo.id}`);
     compartir({
       titulo: modeloActivo.nombre,
-      texto: `${modeloActivo.nombre}${modeloActivo.precioFormato ? " — " + modeloActivo.precioFormato : ""} · Miguel Mondragon`,
-      url: portada,
+      texto: `${modeloActivo.nombre}${modeloActivo.precioFormato ? " — " + modeloActivo.precioFormato : ""} · Nuevo Comienzo`,
+      url,
     });
   });
 

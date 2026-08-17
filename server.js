@@ -1,5 +1,6 @@
 require("dotenv").config();
 const path = require("path");
+const fs = require("fs");
 const express = require("express");
 const { downloadAttachment, sendVoiceMessage, sendTextMessage } = require("./lib/timelinesClient");
 const { transcribeAudio } = require("./lib/stt");
@@ -25,6 +26,64 @@ const app = express();
 app.use(express.json({ limit: "20mb" }));
 app.use(extraerFotosRouter);
 app.use(openaiProxyRouter);
+
+// Página individual por modelo (server-rendered) con etiquetas Open Graph
+// (og:image, og:title, og:description). Se usa como URL para "Compartir
+// modelo" en la galería: a diferencia de la página principal (que carga
+// las fotos con JavaScript, invisible para el rastreador de Facebook),
+// esta ruta manda el HTML con la foto de portada ya incluida en el <head>,
+// así que Facebook/WhatsApp SÍ pueden mostrar la imagen en la vista previa
+// del link (posts, Messenger, anuncios de tipo "un solo link"). Un humano
+// que abre el link es redirigido al instante a la galería normal.
+app.get("/galeria/modelo/:proyectoId/:modeloId", (req, res) => {
+  try {
+    const manifestPath = path.join(__dirname, "public-galeria", "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const proyecto = manifest.proyectos.find((p) => p.id === req.params.proyectoId);
+    const modelo = proyecto && proyecto.modelos.find((m) => m.id === req.params.modeloId);
+
+    if (!proyecto || !modelo) {
+      return res.redirect("/galeria/");
+    }
+
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const imagenAbsoluta = `${baseUrl}/galeria/${modelo.portada}`;
+    const precio = modelo.precioFormato || "Consultar precio";
+    const titulo = `${modelo.nombre} — ${precio} | Nuevo Comienzo`;
+    const descripcion = `${proyecto.nombre}, Franco, Silao · Gto. ${modelo.totalFotos} fotos disponibles.`;
+    const urlPagina = `${baseUrl}/galeria/modelo/${proyecto.id}/${modelo.id}`;
+    const destinoGaleria = `/galeria/#${proyecto.id}/${modelo.id}`;
+
+    const escapar = (s) => String(s).replace(/"/g, "&quot;");
+
+    res.send(`<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>${escapar(titulo)}</title>
+<meta name="description" content="${escapar(descripcion)}" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Nuevo Comienzo" />
+<meta property="og:title" content="${escapar(titulo)}" />
+<meta property="og:description" content="${escapar(descripcion)}" />
+<meta property="og:image" content="${escapar(imagenAbsoluta)}" />
+<meta property="og:image:secure_url" content="${escapar(imagenAbsoluta)}" />
+<meta property="og:url" content="${escapar(urlPagina)}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapar(titulo)}" />
+<meta name="twitter:image" content="${escapar(imagenAbsoluta)}" />
+</head>
+<body>
+<p>Abriendo <a href="${escapar(destinoGaleria)}">${escapar(titulo)}</a>…</p>
+<script>location.replace(${JSON.stringify(destinoGaleria)});</script>
+</body>
+</html>`);
+  } catch (err) {
+    console.error("Error en /galeria/modelo/:proyectoId/:modeloId:", err);
+    res.redirect("/galeria/");
+  }
+});
 
 // Galería web pública de fotos (Diamante y Santuario), para compartir por
 // WhatsApp. Sirve todo lo que hay en public-galeria/ (index.html, style.css,
