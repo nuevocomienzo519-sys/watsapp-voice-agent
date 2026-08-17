@@ -1,4 +1,5 @@
 require("dotenv").config();
+const path = require("path");
 const express = require("express");
 const { downloadAttachment, sendVoiceMessage, sendTextMessage } = require("./lib/timelinesClient");
 const { transcribeAudio } = require("./lib/stt");
@@ -24,6 +25,13 @@ const app = express();
 app.use(express.json({ limit: "20mb" }));
 app.use(extraerFotosRouter);
 app.use(openaiProxyRouter);
+
+// Galería web pública de fotos (Diamante y Santuario), para compartir por
+// WhatsApp. Sirve todo lo que hay en public-galeria/ (index.html, style.css,
+// app.js, manifest.json y la carpeta fotos/) en https://TU-DOMINIO/galeria/
+// Para regenerar manifest.json después de agregar/quitar fotos, correr:
+//   node scripts/generarManifest.js
+app.use("/galeria", express.static(path.join(__dirname, "public-galeria")));
 
 // Evita procesar el mismo mensaje dos veces si TimelinesAI reintenta el webhook.
 const processedMessageIds = new Set();
