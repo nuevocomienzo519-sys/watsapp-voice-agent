@@ -27,6 +27,12 @@ const MODELOS_PREVENTA = new Set([
 // tiene relacion con el contenido). Clave = nombre exacto de la carpeta,
 // valor = nombre exacto del archivo dentro de esa misma carpeta.
 const PORTADA_MANUAL = {
+  // OJO: las fotos propias de este modelo (01_Foto..07_Foto) se eliminaron
+  // por estar borrosas/de baja resolucion; lo unico que queda en la carpeta
+  // son graficos publicitarios (00_Comun_XX) con texto superpuesto, asi que
+  // se usa el folleto oficial como mejor opcion disponible por ahora — hace
+  // falta subir fotos nuevas y nitidas de la fachada de este modelo.
+  "Diamante - Casa Modelo Esmeralda - $3,200,000": "00_FOLLETO.jpg",
   "Santuario - Casa Modelo Santi Ampliada - $1,289,000": "98_attachment.jpg",
   "Santuario - Casa Modelo Santi En Esquina - $1,450,000": "150_attachment.jpg",
   "Santuario - Casa Modelo Santi Esquina Excedente 2 - $1,780,000":

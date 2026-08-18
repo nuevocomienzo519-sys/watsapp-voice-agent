@@ -1,5 +1,5 @@
 {
-  "generadoEn": "2026-08-18T21:33:56.155Z",
+  "generadoEn": "2026-08-18T22:03:37.016Z",
   "proyectos": [
     {
       "id": "diamante",
@@ -72,19 +72,15 @@
           "preventa": false,
           "precio": 3200000,
           "precioFormato": "$3,200,000",
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/01_Foto.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_FOLLETO.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_02.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_06.jpg",
-            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_08.jpg",
-            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_09.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_12.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_15.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_19.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_21.jpg",
-            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_22.jpg",
-            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_24.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_27.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_29.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_30.jpg",
@@ -93,14 +89,7 @@
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_37.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_40.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_41.jpg",
-            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_43.jpg",
-            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/01_Foto.jpg",
-            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/02_Foto.jpg",
-            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/03_Foto.jpg",
-            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/04_Foto.jpg",
-            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/05_Foto.jpg",
-            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/06_Foto.jpg",
-            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/07_Foto.jpg"
+            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_43.jpg"
           ],
           "fotosAdicionales": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/Imagenes%20de%20Complemento/Plano_01.jpg",
@@ -130,7 +119,7 @@
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/Imagenes%20de%20Complemento/Plano_25.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/Imagenes%20de%20Complemento/Plano_26.jpg"
           ],
-          "totalFotos": 53
+          "totalFotos": 42
         },
         {
           "id": "diamante-casa-modelo-esmeralda-con-alberca-5-200-000",
@@ -143,7 +132,6 @@
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/00_Comun_19.jpg",
-            "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/00_Comun_22.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/00_Comun_27.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/00_Comun_29.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/00_Comun_30.jpg",
@@ -187,7 +175,7 @@
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/Imagenes%20de%20Complemento/Plano_13.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/Imagenes%20de%20Complemento/Plano_15.jpg"
           ],
-          "totalFotos": 43
+          "totalFotos": 42
         },
         {
           "id": "diamante-terreno-lote-manzana-1-entrada-caseta",
