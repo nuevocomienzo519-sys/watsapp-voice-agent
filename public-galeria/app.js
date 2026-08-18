@@ -168,6 +168,7 @@
           ${m.portada ? `<img src="${m.portada}" alt="${m.nombre}" loading="lazy" />` : ""}
           <span class="card__check" aria-hidden="true"></span>
           <span class="card__badge">${badge}</span>
+          ${m.preventa ? `<span class="card__badge card__badge--preventa">Preventa</span>` : ""}
           <span class="card__count">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="2.5" width="10" height="7.5" rx="1.2" stroke="currentColor" stroke-width="1.1"/><path d="M1 8l2.7-2.7a1 1 0 0 1 1.4 0L8 8" stroke="currentColor" stroke-width="1.1"/><circle cx="8.3" cy="4.3" r="0.9" fill="currentColor"/></svg>
             ${m.totalFotos}
@@ -292,7 +293,8 @@
     indiceActivo = 0;
 
     els.visorNombre.textContent = modelo.nombre;
-    els.visorPrecio.textContent = modelo.precioFormato || "Consultar precio";
+    els.visorPrecio.textContent =
+      (modelo.precioFormato || "Consultar precio") + (modelo.preventa ? " · Preventa" : "");
 
     pintarTabsVisor();
     pintarTiras();

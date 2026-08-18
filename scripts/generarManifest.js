@@ -14,6 +14,12 @@ const SALIDA = path.join(__dirname, "..", "public-galeria", "manifest.json");
 
 const EXT_IMAGEN = /\.(jpe?g|png|webp)$/i;
 
+// Modelos que se manejan como preventa (aun no terminados de construir).
+// Clave = nombre exacto de la carpeta del modelo tal como aparece en disco.
+const MODELOS_PREVENTA = new Set([
+  "Diamante - Casa Modelo Esmeralda Con Alberca - $5,200,000",
+]);
+
 // Correcciones puntuales de nombres que llegaron mal desde el ZIP original
 // (encoding roto, mayúsculas inconsistentes, sufijos numéricos de carpetas
 // que en realidad son el mismo modelo). Clave = nombre de carpeta tal cual
@@ -139,6 +145,7 @@ function procesarProyecto(nombreProyecto) {
         ? limpiarNombreModelo(carpeta).replace(/\s*\(.*\)$/, "")
         : limpiarNombreModelo(carpeta),
       tipo: esComun ? "comun" : esTerreno ? "terreno" : "casa",
+      preventa: MODELOS_PREVENTA.has(carpeta),
       precio,
       precioFormato: formatoPrecio(precio),
       portada: fotosPrincipales[0] || fotosAdicionales[0] || null,
