@@ -1,5 +1,5 @@
 {
-  "generadoEn": "2026-08-18T19:39:20.991Z",
+  "generadoEn": "2026-08-18T21:33:56.155Z",
   "proyectos": [
     {
       "id": "diamante",
@@ -12,7 +12,7 @@
           "preventa": false,
           "precio": 2900000,
           "precioFormato": "$2,900,000",
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Diamante%20-%20%242%2C900%2C000/00_Comun_02.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Diamante%20-%20%242%2C900%2C000/02_Foto.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Diamante%20-%20%242%2C900%2C000/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Diamante%20-%20%242%2C900%2C000/00_Comun_02.jpg",
@@ -72,7 +72,7 @@
           "preventa": false,
           "precio": 3200000,
           "precioFormato": "$3,200,000",
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_02.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/01_Foto.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_02.jpg",
@@ -139,7 +139,7 @@
           "preventa": true,
           "precio": 5200000,
           "precioFormato": "$5,200,000",
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/00_Comun_19.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/01_Foto.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/00_Comun_19.jpg",
@@ -196,7 +196,7 @@
           "preventa": false,
           "precio": null,
           "precioFormato": null,
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%201%20Entrada%20Caseta/00_Comun_19.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%201%20Entrada%20Caseta/01_Foto.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%201%20Entrada%20Caseta/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%201%20Entrada%20Caseta/00_Comun_19.jpg",
@@ -219,7 +219,7 @@
           "preventa": false,
           "precio": null,
           "precioFormato": null,
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%202%20Frente%20a%20Parque/00_Comun_19.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%202%20Frente%20a%20Parque/01_Foto.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%202%20Frente%20a%20Parque/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%202%20Frente%20a%20Parque/00_Comun_19.jpg",
@@ -242,7 +242,7 @@
           "preventa": false,
           "precio": null,
           "precioFormato": null,
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%203%20Frente%20a%20Parque/00_Comun_19.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%203%20Frente%20a%20Parque/01_Foto.jpeg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%203%20Frente%20a%20Parque/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%203%20Frente%20a%20Parque/00_Comun_19.jpg",
@@ -264,7 +264,7 @@
           "preventa": false,
           "precio": null,
           "precioFormato": null,
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Manzana%202%20Junto%20a%20Parque/00_Comun_19.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Manzana%202%20Junto%20a%20Parque/01_Foto.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Manzana%202%20Junto%20a%20Parque/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Manzana%202%20Junto%20a%20Parque/00_Comun_19.jpg",
@@ -285,7 +285,7 @@
           "preventa": false,
           "precio": null,
           "precioFormato": null,
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Zona%20Comercial%20y%20Entrada%20Residencial/00_Comun_19.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Zona%20Comercial%20y%20Entrada%20Residencial/WhatsApp%20Image%202026-08-14%20at%2012.53.34%20PM.jpeg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Zona%20Comercial%20y%20Entrada%20Residencial/00_Comun_19.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Zona%20Comercial%20y%20Entrada%20Residencial/00_Comun_47.jpg",
@@ -462,7 +462,7 @@
           "preventa": false,
           "precio": 1289000,
           "precioFormato": "$1,289,000",
-          "portada": "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20Santi%20Ampliada%20-%20%241%2C289%2C000/89_attachment.jpg",
+          "portada": "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20Santi%20Ampliada%20-%20%241%2C289%2C000/98_attachment.jpg",
           "fotos": [
             "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20Santi%20Ampliada%20-%20%241%2C289%2C000/89_attachment.jpg",
             "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20Santi%20Ampliada%20-%20%241%2C289%2C000/90_attachment.jpg",
@@ -507,7 +507,7 @@
           "preventa": false,
           "precio": 1450000,
           "precioFormato": "$1,450,000",
-          "portada": "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20Santi%20En%20Esquina%20-%20%241%2C450%2C000/37_attachment.jpg",
+          "portada": "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20Santi%20En%20Esquina%20-%20%241%2C450%2C000/150_attachment.jpg",
           "fotos": [
             "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20Santi%20En%20Esquina%20-%20%241%2C450%2C000/37_attachment.jpg",
             "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20Santi%20En%20Esquina%20-%20%241%2C450%2C000/87_attachment.jpg",
@@ -547,7 +547,7 @@
           "preventa": false,
           "precio": 1480000,
           "precioFormato": "$1,480,000",
-          "portada": "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20santi%20Esquina%20Ampliada%201%20-%20%241%2C480%2C000/2c9e04b8-aa4a-4c72-9405-0308f5352529.jpg",
+          "portada": "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20santi%20Esquina%20Ampliada%201%20-%20%241%2C480%2C000/attachment%20(20).jpg",
           "fotos": [
             "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20santi%20Esquina%20Ampliada%201%20-%20%241%2C480%2C000/2c9e04b8-aa4a-4c72-9405-0308f5352529.jpg",
             "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20santi%20Esquina%20Ampliada%201%20-%20%241%2C480%2C000/Archivo_escaneado_20260612-1624-01%20(1).jpg",
@@ -587,7 +587,7 @@
           "preventa": false,
           "precio": 1780000,
           "precioFormato": "$1,780,000",
-          "portada": "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20Santi%20Esquina%20Excedente%202%20-%20%241%2C780%2C000/5e7e463f-7872-4adf-9bc3-680e71ed70ce.jpg",
+          "portada": "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20Santi%20Esquina%20Excedente%202%20-%20%241%2C780%2C000/106d3eb0-6f33-41d5-bc54-2fc296dcf3b8.jpg",
           "fotos": [
             "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20Santi%20Esquina%20Excedente%202%20-%20%241%2C780%2C000/5e7e463f-7872-4adf-9bc3-680e71ed70ce.jpg",
             "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Casa%20Modelo%20Santi%20Esquina%20Excedente%202%20-%20%241%2C780%2C000/051ade04-fcdf-4a89-b329-440771bfa083.jpg",

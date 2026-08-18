@@ -20,6 +20,24 @@ const MODELOS_PREVENTA = new Set([
   "Diamante - Casa Modelo Esmeralda Con Alberca - $5,200,000",
 ]);
 
+// Portadas elegidas a mano para modelos donde la heuristica automatica
+// (primera foto que no sea 00_Comun_*/00_FOLLETO) no encuentra una foto
+// que muestre la fachada real de ESE modelo (carpetas con fotos de chat
+// exportado sin patron de nombre "0X_Foto", donde el numero de archivo no
+// tiene relacion con el contenido). Clave = nombre exacto de la carpeta,
+// valor = nombre exacto del archivo dentro de esa misma carpeta.
+const PORTADA_MANUAL = {
+  "Santuario - Casa Modelo Santi Ampliada - $1,289,000": "98_attachment.jpg",
+  "Santuario - Casa Modelo Santi En Esquina - $1,450,000": "150_attachment.jpg",
+  "Santuario - Casa Modelo Santi Esquina Excedente 2 - $1,780,000":
+    "106d3eb0-6f33-41d5-bc54-2fc296dcf3b8.jpg",
+  // OJO: esta carpeta no tiene NINGUNA foto propia que muestre la fachada
+  // (solo recamara/bano genericos y fotos de jardin escaneadas) — se deja
+  // la mejor disponible, pero hace falta que suban una foto real de la
+  // fachada de este modelo.
+  "Santuario - Casa Modelo santi Esquina Ampliada 1 - $1,480,000": "attachment (20).jpg",
+};
+
 // Correcciones puntuales de nombres que llegaron mal desde el ZIP original
 // (encoding roto, mayúsculas inconsistentes, sufijos numéricos de carpetas
 // que en realidad son el mismo modelo). Clave = nombre de carpeta tal cual
@@ -142,7 +160,14 @@ function procesarProyecto(nombreProyecto) {
     // al recortarla en el marco fijo de la tarjeta se corta ese texto. El
     // folleto se sigue mostrando normal como primera foto dentro del
     // visor de detalle (fotosPrincipales ya lo trae primero).
+    // Preferimos una foto realmente propia de ESTE modelo/lote (las que
+    // llevan numero + "_Foto", ej. 01_Foto.jpg, 02_Foto.jpg...) por encima
+    // de las fotos "00_Comun_*" o "00_FOLLETO", que son piezas compartidas
+    // repetidas igual en varias carpetas (entrada del fraccionamiento,
+    // areas comunes) y no muestran la fachada de la propiedad en concreto.
     const nombrePortada =
+      PORTADA_MANUAL[carpeta] ||
+      nombresPrincipales.find((f) => !/^00_/i.test(f)) ||
       nombresPrincipales.find((f) => !/^00_FOLLETO/i.test(f)) ||
       nombresPrincipales[0] ||
       nombresComplemento[0] ||
