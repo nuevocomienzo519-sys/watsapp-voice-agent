@@ -114,7 +114,10 @@ function procesarProyecto(nombreProyecto) {
       dirComplemento = path.join(dirModelo, "Planos");
     }
 
-    const fotosPrincipales = listarImagenes(dirModelo).map((f) =>
+    const nombresPrincipales = listarImagenes(dirModelo);
+    const nombresComplemento = listarImagenes(dirComplemento);
+
+    const fotosPrincipales = nombresPrincipales.map((f) =>
       rutaPublica(
         "fotos",
         nombreProyecto,
@@ -123,7 +126,7 @@ function procesarProyecto(nombreProyecto) {
         f
       )
     );
-    const fotosAdicionales = listarImagenes(dirComplemento).map((f) =>
+    const fotosAdicionales = nombresComplemento.map((f) =>
       rutaPublica(
         "fotos",
         nombreProyecto,
@@ -133,6 +136,36 @@ function procesarProyecto(nombreProyecto) {
         f
       )
     );
+
+    // La portada de la tarjeta (grid) debe ser SIEMPRE una foto real, nunca
+    // el 00_FOLLETO (pieza de diseño con texto/iconos pegados a los bordes):
+    // al recortarla en el marco fijo de la tarjeta se corta ese texto. El
+    // folleto se sigue mostrando normal como primera foto dentro del
+    // visor de detalle (fotosPrincipales ya lo trae primero).
+    const nombrePortada =
+      nombresPrincipales.find((f) => !/^00_FOLLETO/i.test(f)) ||
+      nombresPrincipales[0] ||
+      nombresComplemento[0] ||
+      null;
+    const dirPortada = nombresPrincipales.includes(nombrePortada) ? null : "complemento";
+    const portadaCalculada = !nombrePortada
+      ? null
+      : dirPortada === "complemento"
+      ? rutaPublica(
+          "fotos",
+          nombreProyecto,
+          "01 Para Redes (Asesores)",
+          carpeta,
+          path.basename(dirComplemento),
+          nombrePortada
+        )
+      : rutaPublica(
+          "fotos",
+          nombreProyecto,
+          "01 Para Redes (Asesores)",
+          carpeta,
+          nombrePortada
+        );
 
     return {
       id: carpeta
@@ -148,7 +181,7 @@ function procesarProyecto(nombreProyecto) {
       preventa: MODELOS_PREVENTA.has(carpeta),
       precio,
       precioFormato: formatoPrecio(precio),
-      portada: fotosPrincipales[0] || fotosAdicionales[0] || null,
+      portada: portadaCalculada,
       fotos: fotosPrincipales,
       fotosAdicionales,
       totalFotos: fotosPrincipales.length + fotosAdicionales.length,

@@ -1,5 +1,5 @@
 {
-  "generadoEn": "2026-08-18T19:28:31.046Z",
+  "generadoEn": "2026-08-18T19:39:20.991Z",
   "proyectos": [
     {
       "id": "diamante",
@@ -12,7 +12,7 @@
           "preventa": false,
           "precio": 2900000,
           "precioFormato": "$2,900,000",
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Diamante%20-%20%242%2C900%2C000/00_FOLLETO.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Diamante%20-%20%242%2C900%2C000/00_Comun_02.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Diamante%20-%20%242%2C900%2C000/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Diamante%20-%20%242%2C900%2C000/00_Comun_02.jpg",
@@ -72,7 +72,7 @@
           "preventa": false,
           "precio": 3200000,
           "precioFormato": "$3,200,000",
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_FOLLETO.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_02.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20-%20%243%2C200%2C000/00_Comun_02.jpg",
@@ -139,7 +139,7 @@
           "preventa": true,
           "precio": 5200000,
           "precioFormato": "$5,200,000",
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/00_FOLLETO.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/00_Comun_19.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Casa%20Modelo%20Esmeralda%20Con%20Alberca%20-%20%245%2C200%2C000/00_Comun_19.jpg",
@@ -196,7 +196,7 @@
           "preventa": false,
           "precio": null,
           "precioFormato": null,
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%201%20Entrada%20Caseta/00_FOLLETO.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%201%20Entrada%20Caseta/00_Comun_19.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%201%20Entrada%20Caseta/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%201%20Entrada%20Caseta/00_Comun_19.jpg",
@@ -219,7 +219,7 @@
           "preventa": false,
           "precio": null,
           "precioFormato": null,
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%202%20Frente%20a%20Parque/00_FOLLETO.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%202%20Frente%20a%20Parque/00_Comun_19.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%202%20Frente%20a%20Parque/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%202%20Frente%20a%20Parque/00_Comun_19.jpg",
@@ -242,7 +242,7 @@
           "preventa": false,
           "precio": null,
           "precioFormato": null,
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%203%20Frente%20a%20Parque/00_FOLLETO.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%203%20Frente%20a%20Parque/00_Comun_19.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%203%20Frente%20a%20Parque/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Lote%20Manzana%203%20Frente%20a%20Parque/00_Comun_19.jpg",
@@ -264,7 +264,7 @@
           "preventa": false,
           "precio": null,
           "precioFormato": null,
-          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Manzana%202%20Junto%20a%20Parque/00_FOLLETO.jpg",
+          "portada": "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Manzana%202%20Junto%20a%20Parque/00_Comun_19.jpg",
           "fotos": [
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Manzana%202%20Junto%20a%20Parque/00_FOLLETO.jpg",
             "fotos/Diamante/01%20Para%20Redes%20(Asesores)/Diamante%20-%20Terreno%20Manzana%202%20Junto%20a%20Parque/00_Comun_19.jpg",
@@ -634,7 +634,7 @@
           "preventa": false,
           "precio": null,
           "precioFormato": null,
-          "portada": "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Jardines%20y%20Entrada%20(Fotos%20Comunes)/00_FOLLETO.jpg",
+          "portada": "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Jardines%20y%20Entrada%20(Fotos%20Comunes)/00_Comun_54.jpg",
           "fotos": [
             "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Jardines%20y%20Entrada%20(Fotos%20Comunes)/00_FOLLETO.jpg",
             "fotos/Santuario/01%20Para%20Redes%20(Asesores)/Santuario%20-%20Jardines%20y%20Entrada%20(Fotos%20Comunes)/00_Comun_54.jpg",
