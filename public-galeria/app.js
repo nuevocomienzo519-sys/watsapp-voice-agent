@@ -24,6 +24,12 @@
     visorCompartirModelo: document.getElementById("visorCompartirModelo"),
     visorCompartirFoto: document.getElementById("visorCompartirFoto"),
 
+    visorBtnSeleccion: document.getElementById("visorBtnSeleccion"),
+    visorBarraSeleccion: document.getElementById("visorBarraSeleccion"),
+    visorSeleccionContador: document.getElementById("visorSeleccionContador"),
+    visorCancelarSeleccion: document.getElementById("visorCancelarSeleccion"),
+    visorCompartirSeleccion: document.getElementById("visorCompartirSeleccion"),
+
     btnModoSeleccion: document.getElementById("btnModoSeleccion"),
     barraSeleccion: document.getElementById("barraSeleccion"),
     seleccionContador: document.getElementById("seleccionContador"),
@@ -39,6 +45,11 @@
 
   let modoSeleccion = false;
   const seleccionados = new Map(); // clave "proyectoId/modeloId" -> modelo
+
+  // Selección múltiple DENTRO del visor: elegir varias fotos de la MISMA
+  // propiedad (ej. 3 fotos de fachada) para mandarlas juntas.
+  let modoSeleccionFotos = false;
+  const fotosSeleccionadas = new Set(); // índices dentro de fotosDeTab()
 
   // ---------- Carga de datos ----------
 
@@ -235,46 +246,76 @@
   });
 
   // Comparte varias fotos (una portada por modelo seleccionado) en una
-  // sola indicación. Si el navegador soporta compartir archivos (Web
-  // Share API con "files" — funciona en Chrome/Safari de celular), se
-  // adjuntan todas las imágenes de una vez, como si se compartieran
-  // varias fotos juntas desde la galería del teléfono. Si no, se abre
-  // WhatsApp con un mensaje de texto que trae un link por modelo (cada
-  // uno con vista previa propia, gracias a /galeria/modelo/...).
+  // sola indicación, reusando compartirArchivos().
   async function compartirVarios(modelos) {
     if (!modelos.length) return;
+    const items = modelos.map((m, i) => ({
+      url: m.portada,
+      nombre: `${m.nombre || "foto"}-${i + 1}`,
+    }));
+    const textoWhatsapp = modelos
+      .map((m) => `${m.nombre}${m.precioFormato ? " — " + m.precioFormato : ""}`)
+      .join("\n");
+    // Para el respaldo por WhatsApp usamos el link de cada MODELO (con
+    // vista previa propia, gracias a /galeria/modelo/...), no el link
+    // directo a la imagen — por eso este caso arma su propio mensaje en
+    // vez de pasar por el respaldo genérico de compartirArchivos.
+    const compartidoComoArchivos = await compartirArchivos(items, {
+      titulo: "Nuevo Comienzo",
+      textoWhatsapp,
+      soloDescargarYCompartir: true,
+    });
+    if (compartidoComoArchivos) return;
 
-    try {
-      const archivos = await Promise.all(
-        modelos.map(async (m, i) => {
-          const res = await fetch(m.portada);
-          const blob = await res.blob();
-          const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
-          return new File([blob], `${m.nombre || "foto"}-${i + 1}.${ext}`, { type: blob.type });
-        })
-      );
-
-      if (navigator.canShare && navigator.canShare({ files: archivos })) {
-        await navigator.share({
-          files: archivos,
-          title: "Nuevo Comienzo",
-          text: modelos.map((m) => `${m.nombre}${m.precioFormato ? " — " + m.precioFormato : ""}`).join("\n"),
-        });
-        return;
-      }
-    } catch (err) {
-      if (err && err.name === "AbortError") return; // el usuario canceló
-      console.error("No se pudo compartir como archivos, usando el respaldo de links:", err);
-    }
-
-    // Respaldo: WhatsApp con un link por modelo (cada uno con su propia
-    // vista previa de imagen al pegarse en el chat).
     const lineas = modelos.map((m) => {
       const url = urlAbsoluta(`modelo/${proyectoActivo}/${m.id}`);
       return `${m.nombre}${m.precioFormato ? " — " + m.precioFormato : ""}\n${url}`;
     });
     const mensaje = encodeURIComponent(lineas.join("\n\n"));
     window.open(`https://wa.me/?text=${mensaje}`, "_blank");
+  }
+
+  // Función genérica: descarga cada item.url como archivo real y lo
+  // comparte de una sola vez vía Web Share API (navigator.share con
+  // "files" — funciona en Chrome/Safari de celular, adjuntando las
+  // imágenes de verdad, no un link). Devuelve true si logró compartir
+  // como archivos. Si el navegador no lo soporta y soloDescargarYCompartir
+  // NO está activo, cae de respaldo a abrir WhatsApp con un link por foto
+  // (útil para el visor, donde cada foto sí tiene URL directa válida).
+  async function compartirArchivos(items, { titulo, textoWhatsapp, soloDescargarYCompartir } = {}) {
+    if (!items.length) return false;
+
+    try {
+      const archivos = await Promise.all(
+        items.map(async ({ url, nombre }) => {
+          const res = await fetch(url);
+          const blob = await res.blob();
+          const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+          return new File([blob], `${nombre}.${ext}`, { type: blob.type });
+        })
+      );
+
+      if (navigator.canShare && navigator.canShare({ files: archivos })) {
+        await navigator.share({
+          files: archivos,
+          title: titulo || "Nuevo Comienzo",
+          text: textoWhatsapp || "",
+        });
+        return true;
+      }
+    } catch (err) {
+      if (err && err.name === "AbortError") return true; // el usuario canceló, no seguir al respaldo
+      console.error("No se pudo compartir como archivos, usando el respaldo de links:", err);
+    }
+
+    if (soloDescargarYCompartir) return false; // deja que el llamador arme su propio respaldo
+
+    // Respaldo genérico: WhatsApp con un link directo por foto.
+    const lineas = items.map(({ url }) => urlAbsoluta(url));
+    const encabezado = textoWhatsapp ? `${textoWhatsapp}\n\n` : "";
+    const mensaje = encodeURIComponent(encabezado + lineas.join("\n"));
+    window.open(`https://wa.me/?text=${mensaje}`, "_blank");
+    return false;
   }
 
   els.buscador.addEventListener("input", pintarGrid);
@@ -292,6 +333,12 @@
     tabActiva = modelo.fotos.length ? "fotos" : "fotosAdicionales";
     indiceActivo = 0;
 
+    modoSeleccionFotos = false;
+    fotosSeleccionadas.clear();
+    els.visorBtnSeleccion.setAttribute("aria-pressed", "false");
+    els.visorBtnSeleccion.textContent = "Seleccionar fotos";
+    els.visorBarraSeleccion.hidden = true;
+
     els.visorNombre.textContent = modelo.nombre;
     els.visorPrecio.textContent =
       (modelo.precioFormato || "Consultar precio") + (modelo.preventa ? " · Preventa" : "");
@@ -308,6 +355,8 @@
     els.visor.hidden = true;
     document.body.style.overflow = "";
     modeloActivo = null;
+    modoSeleccionFotos = false;
+    fotosSeleccionadas.clear();
   }
 
   function pintarTabsVisor() {
@@ -347,23 +396,98 @@
   function pintarTiras() {
     const fotos = fotosDeTab();
     els.visorTiras.innerHTML = "";
+    els.visorTiras.classList.toggle("modo-seleccion", modoSeleccionFotos);
+
     fotos.forEach((src, i) => {
+      const item = document.createElement("div");
+      item.className =
+        "visor__tira-item" + (fotosSeleccionadas.has(i) ? " seleccionada" : "");
+
       const img = document.createElement("img");
       img.src = src;
       img.loading = "lazy";
       img.alt = "";
-      img.addEventListener("click", () => mostrarFoto(i));
-      els.visorTiras.appendChild(img);
+
+      const check = document.createElement("span");
+      check.className = "visor__tira-check";
+      check.setAttribute("aria-hidden", "true");
+
+      item.appendChild(img);
+      item.appendChild(check);
+
+      item.addEventListener("click", () => {
+        if (modoSeleccionFotos) {
+          toggleFotoSeleccionada(i);
+        } else {
+          mostrarFoto(i);
+        }
+      });
+
+      els.visorTiras.appendChild(item);
     });
     resaltarTira();
   }
 
   function resaltarTira() {
-    Array.from(els.visorTiras.children).forEach((img, i) => {
-      img.classList.toggle("activa", i === indiceActivo);
-      if (i === indiceActivo) img.scrollIntoView({ inline: "center", block: "nearest" });
+    Array.from(els.visorTiras.children).forEach((item, i) => {
+      if (!modoSeleccionFotos) {
+        item.classList.toggle("activa", i === indiceActivo);
+        item.querySelector("img")?.classList.toggle("activa", i === indiceActivo);
+      }
+      if (i === indiceActivo && !modoSeleccionFotos) {
+        item.scrollIntoView({ inline: "center", block: "nearest" });
+      }
     });
   }
+
+  // ---------- Selección múltiple de fotos dentro del visor ----------
+
+  function toggleFotoSeleccionada(indice) {
+    if (fotosSeleccionadas.has(indice)) {
+      fotosSeleccionadas.delete(indice);
+    } else {
+      fotosSeleccionadas.add(indice);
+    }
+    pintarTiras();
+    actualizarBarraSeleccionFotos();
+  }
+
+  function actualizarBarraSeleccionFotos() {
+    const n = fotosSeleccionadas.size;
+    els.visorBarraSeleccion.hidden = !modoSeleccionFotos || n === 0;
+    els.visorSeleccionContador.textContent =
+      n === 1 ? "1 seleccionada" : `${n} seleccionadas`;
+  }
+
+  els.visorBtnSeleccion.addEventListener("click", () => {
+    modoSeleccionFotos = !modoSeleccionFotos;
+    els.visorBtnSeleccion.setAttribute("aria-pressed", String(modoSeleccionFotos));
+    els.visorBtnSeleccion.textContent = modoSeleccionFotos
+      ? "Cancelar selección"
+      : "Seleccionar fotos";
+    if (!modoSeleccionFotos) fotosSeleccionadas.clear();
+    pintarTiras();
+    actualizarBarraSeleccionFotos();
+  });
+
+  els.visorCancelarSeleccion.addEventListener("click", () => {
+    fotosSeleccionadas.clear();
+    pintarTiras();
+    actualizarBarraSeleccionFotos();
+  });
+
+  els.visorCompartirSeleccion.addEventListener("click", () => {
+    const fotos = fotosDeTab();
+    const items = Array.from(fotosSeleccionadas)
+      .sort((a, b) => a - b)
+      .map((i) => ({
+        url: fotos[i],
+        nombre: `${modeloActivo.nombre}-foto${i + 1}`,
+      }));
+    compartirArchivos(items, {
+      textoWhatsapp: `${modeloActivo.nombre}${modeloActivo.precioFormato ? " — " + modeloActivo.precioFormato : ""} · Nuevo Comienzo`,
+    });
+  });
 
   els.visorCerrar.addEventListener("click", cerrarVisor);
   els.visorPrev.addEventListener("click", () => mostrarFoto(indiceActivo - 1));
