@@ -92,6 +92,17 @@
   <div class="visor__bottom">
     <span id="visorContador" class="visor__contador"></span>
     <button id="visorCompartirFoto" class="btn btn--ghost-light">Compartir esta foto</button>
+    <button id="visorBtnSeleccion" class="btn btn--ghost-light" type="button">Seleccionar fotos</button>
+  </div>
+
+  <!-- Barra de acción cuando se están eligiendo varias fotos de esta misma
+       propiedad (aparece pegada arriba de la tira de miniaturas) -->
+  <div id="visorBarraSeleccion" class="visor__barra-seleccion" hidden>
+    <span id="visorSeleccionContador">0 seleccionadas</span>
+    <div class="visor__barra-seleccion__botones">
+      <button id="visorCancelarSeleccion" class="btn btn--ghost" type="button">Cancelar</button>
+      <button id="visorCompartirSeleccion" class="btn btn--ghost-light" type="button">Compartir</button>
+    </div>
   </div>
 
   <div class="visor__tiras" id="visorTiras"></div>
