@@ -23,11 +23,13 @@
     visorTiras: document.getElementById("visorTiras"),
     visorCompartirModelo: document.getElementById("visorCompartirModelo"),
     visorCompartirFoto: document.getElementById("visorCompartirFoto"),
+    visorDescargarFoto: document.getElementById("visorDescargarFoto"),
 
     visorBtnSeleccion: document.getElementById("visorBtnSeleccion"),
     visorBarraSeleccion: document.getElementById("visorBarraSeleccion"),
     visorSeleccionContador: document.getElementById("visorSeleccionContador"),
     visorCancelarSeleccion: document.getElementById("visorCancelarSeleccion"),
+    visorDescargarSeleccion: document.getElementById("visorDescargarSeleccion"),
     visorCompartirSeleccion: document.getElementById("visorCompartirSeleccion"),
 
     btnModoSeleccion: document.getElementById("btnModoSeleccion"),
@@ -495,6 +497,14 @@
     actualizarBarraSeleccionFotos();
   });
 
+  els.visorDescargarSeleccion.addEventListener("click", async () => {
+    const fotos = fotosDeTab();
+    const items = Array.from(fotosSeleccionadas)
+      .sort((a, b) => a - b)
+      .map((i) => ({ url: fotos[i], nombre: `${modeloActivo.nombre}-foto${i + 1}` }));
+    await descargarArchivos(items);
+  });
+
   els.visorCompartirSeleccion.addEventListener("click", () => {
     const fotos = fotosDeTab();
     const items = Array.from(fotosSeleccionadas)
@@ -508,6 +518,36 @@
       textoWhatsapp: `${modeloActivo.nombre}${modeloActivo.precioFormato ? " — " + modeloActivo.precioFormato : ""} · Nuevo Comienzo`,
     });
   });
+
+  // Descarga fotos directo al dispositivo (Downloads del celular/PC). En
+  // Android, las imágenes descargadas por el navegador normalmente se
+  // indexan solas en la galería de fotos del teléfono — así que la
+  // siguiente vez que el asesor esté respondiendo en la app de WhatsApp y
+  // toque el ícono de adjuntar > Galería, la foto ya aparece ahí, lista
+  // para mandar sin salir del chat. Las descargas se disparan con un
+  // pequeño intervalo entre cada una porque los navegadores bloquean
+  // ráfagas de descargas simultáneas disparadas por JavaScript.
+  async function descargarArchivos(items) {
+    for (let i = 0; i < items.length; i++) {
+      const { url, nombre } = items[i];
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = `${nombre}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 4000);
+      } catch (err) {
+        console.error("No se pudo descargar la foto:", nombre, err);
+      }
+      if (i < items.length - 1) await new Promise((r) => setTimeout(r, 350));
+    }
+  }
 
   els.visorCerrar.addEventListener("click", cerrarVisor);
   els.visorPrev.addEventListener("click", () => mostrarFoto(indiceActivo - 1));
@@ -597,6 +637,14 @@
       texto: `${modeloActivo.nombre} — foto ${indiceActivo + 1}`,
       url: urlPreview,
     });
+  });
+
+  els.visorDescargarFoto.addEventListener("click", () => {
+    const fotos = fotosDeTab();
+    if (!fotos.length) return;
+    descargarArchivos([
+      { url: fotos[indiceActivo], nombre: `${modeloActivo.nombre}-foto${indiceActivo + 1}` },
+    ]);
   });
 
   // ---------- Arranque ----------
