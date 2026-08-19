@@ -557,6 +557,69 @@ button { font-family: inherit; cursor: pointer; }
   border-color: var(--laton);
 }
 
+/* ---------- Selección múltiple dentro del visor (fotos de una propiedad) ---------- */
+
+.visor__tiras.modo-seleccion img {
+  opacity: 1;
+}
+
+.visor__tiras.modo-seleccion .visor__tira-item {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.visor__tira-check {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  border: 2px solid #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.visor__tiras.modo-seleccion .visor__tira-check { display: flex; }
+
+.visor__tira-item.seleccionada .visor__tira-check {
+  background: var(--verde);
+  border-color: var(--verde);
+}
+
+.visor__tira-item.seleccionada .visor__tira-check::after {
+  content: "";
+  width: 8px;
+  height: 5px;
+  border-left: 2px solid var(--crema);
+  border-bottom: 2px solid var(--crema);
+  transform: rotate(-45deg) translateY(-1px);
+}
+
+.visor__tira-item.seleccionada img {
+  border-color: var(--laton);
+}
+
+.visor__barra-seleccion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--verde-oscuro);
+  color: var(--crema);
+  font-size: 13.5px;
+}
+
+.visor__barra-seleccion[hidden] { display: none; }
+
+.visor__barra-seleccion__botones {
+  display: flex;
+  gap: 8px;
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 560px) {
