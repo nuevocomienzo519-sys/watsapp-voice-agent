@@ -71,9 +71,13 @@
 
     // Deep-link: si la URL trae #proyectoId/modeloId (viene del redirect de
     // /galeria/modelo/:proyectoId/:modeloId), abrimos ese modelo directo,
-    // en vez de mostrar siempre el primer proyecto.
+    // en vez de mostrar siempre el primer proyecto. Formato extendido
+    // #proyectoId/modeloId/f/tab/indice (viene de /galeria/foto/...) además
+    // abre esa foto exacta dentro del visor.
     const hash = decodeURIComponent(location.hash.replace(/^#/, ""));
-    const [hashProyecto, hashModelo] = hash.split("/");
+    const partes = hash.split("/");
+    const [hashProyecto, hashModelo, marcaFoto, hashTab, hashIndiceStr] = partes;
+    const hashIndice = marcaFoto === "f" ? parseInt(hashIndiceStr, 10) : null;
     if (hashProyecto && hashModelo) {
       const proyecto = manifest.proyectos.find((p) => p.id === hashProyecto);
       const modelo = proyecto?.modelos.find((m) => m.id === hashModelo);
@@ -88,7 +92,15 @@
     if (hashProyecto && hashModelo) {
       const proyecto = manifest.proyectos.find((p) => p.id === hashProyecto);
       const modelo = proyecto?.modelos.find((m) => m.id === hashModelo);
-      if (modelo) abrirVisor(modelo);
+      if (modelo) {
+        abrirVisor(modelo);
+        if (marcaFoto === "f" && (hashTab === "fotos" || hashTab === "fotosAdicionales")) {
+          tabActiva = hashTab;
+          pintarTabsVisor();
+          pintarTiras();
+          if (Number.isInteger(hashIndice)) mostrarFoto(hashIndice);
+        }
+      }
     }
   }
 
@@ -310,8 +322,15 @@
 
     if (soloDescargarYCompartir) return false; // deja que el llamador arme su propio respaldo
 
-    // Respaldo genérico: WhatsApp con un link directo por foto.
-    const lineas = items.map(({ url }) => urlAbsoluta(url));
+    // Respaldo genérico: WhatsApp con un link por foto. Se usa
+    // item.urlPreview (página con Open Graph, si el llamador la da) en vez
+    // del link directo a la imagen — así WhatsApp muestra una tarjeta con
+    // miniatura de la foto en vez de un link de texto pelón (esto es lo
+    // que se ve en computadora/WhatsApp Web, donde compartir-como-archivo
+    // no está disponible y siempre se cae a este respaldo).
+    const lineas = items.map(({ url, urlPreview }) =>
+      urlPreview ? urlAbsoluta(urlPreview) : urlAbsoluta(url)
+    );
     const encabezado = textoWhatsapp ? `${textoWhatsapp}\n\n` : "";
     const mensaje = encodeURIComponent(encabezado + lineas.join("\n"));
     window.open(`https://wa.me/?text=${mensaje}`, "_blank");
@@ -482,6 +501,7 @@
       .sort((a, b) => a - b)
       .map((i) => ({
         url: fotos[i],
+        urlPreview: `foto/${proyectoActivo}/${modeloActivo.id}/${tabActiva}/${i}`,
         nombre: `${modeloActivo.nombre}-foto${i + 1}`,
       }));
     compartirArchivos(items, {
@@ -569,10 +589,13 @@
   els.visorCompartirFoto.addEventListener("click", () => {
     const fotos = fotosDeTab();
     if (!fotos.length) return;
+    const urlPreview = urlAbsoluta(
+      `foto/${proyectoActivo}/${modeloActivo.id}/${tabActiva}/${indiceActivo}`
+    );
     compartir({
       titulo: modeloActivo.nombre,
       texto: `${modeloActivo.nombre} — foto ${indiceActivo + 1}`,
-      url: urlAbsoluta(fotos[indiceActivo]),
+      url: urlPreview,
     });
   });
 
