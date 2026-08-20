@@ -29,6 +29,22 @@ app.use(express.json({ limit: "20mb" }));
 app.use(extraerFotosRouter);
 app.use(openaiProxyRouter);
 
+// Mismos identificadores ("slugs") que ya usa la propiedad "Asesor" en
+// HubSpot (ver lib/hubspot.js) — así el link ?asesor=irle, por ejemplo, es
+// consistente con el resto del sistema en vez de inventar otro criterio.
+const ASESORES = {
+  miguel_mondragon: { nombre: "Miguel Mondragon", iniciales: "MM" },
+  irle: { nombre: "Irly Lopez", iniciales: "IL" },
+  jessica: { nombre: "Jessica García", iniciales: "JG" },
+  alejandro: { nombre: "Alejandro Santibañez", iniciales: "AS" },
+};
+const ASESOR_DEFAULT = "miguel_mondragon";
+
+function resolverAsesor(query) {
+  const slug = ASESORES[query?.asesor] ? query.asesor : ASESOR_DEFAULT;
+  return { slug, ...ASESORES[slug] };
+}
+
 // Página individual por modelo (server-rendered) con etiquetas Open Graph
 // (og:image, og:title, og:description). Se usa como URL para "Compartir
 // modelo" en la galería: a diferencia de la página principal (que carga
@@ -48,13 +64,14 @@ app.get("/galeria/modelo/:proyectoId/:modeloId", (req, res) => {
       return res.redirect("/galeria/");
     }
 
+    const asesor = resolverAsesor(req.query);
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const imagenAbsoluta = `${baseUrl}/galeria/${modelo.portada}`;
     const precio = modelo.precioFormato || "Consultar precio";
-    const titulo = `${modelo.nombre} — ${precio} | Nuevo Comienzo`;
+    const titulo = `${modelo.nombre} — ${precio} | ${asesor.nombre}`;
     const descripcion = `${proyecto.nombre}, Franco, Silao · Gto. ${modelo.totalFotos} fotos disponibles.`;
-    const urlPagina = `${baseUrl}/galeria/modelo/${proyecto.id}/${modelo.id}`;
-    const destinoGaleria = `/galeria/#${proyecto.id}/${modelo.id}`;
+    const urlPagina = `${baseUrl}/galeria/modelo/${proyecto.id}/${modelo.id}?asesor=${asesor.slug}`;
+    const destinoGaleria = `/galeria/?asesor=${asesor.slug}#${proyecto.id}/${modelo.id}`;
 
     const escapar = (s) => String(s).replace(/"/g, "&quot;");
 
@@ -66,7 +83,7 @@ app.get("/galeria/modelo/:proyectoId/:modeloId", (req, res) => {
 <title>${escapar(titulo)}</title>
 <meta name="description" content="${escapar(descripcion)}" />
 <meta property="og:type" content="website" />
-<meta property="og:site_name" content="Nuevo Comienzo" />
+<meta property="og:site_name" content="${escapar(asesor.nombre)}" />
 <meta property="og:title" content="${escapar(titulo)}" />
 <meta property="og:description" content="${escapar(descripcion)}" />
 <meta property="og:image" content="${escapar(imagenAbsoluta)}" />
@@ -85,6 +102,72 @@ app.get("/galeria/modelo/:proyectoId/:modeloId", (req, res) => {
     console.error("Error en /galeria/modelo/:proyectoId/:modeloId:", err);
     res.redirect("/galeria/");
   }
+});
+
+// Página individual por FOTO (server-rendered) con etiquetas Open Graph.
+// Se usa como respaldo cuando "Compartir seleccionadas" (dentro del visor
+// de una propiedad) no puede adjuntar las fotos como archivo real —por
+// ejemplo en computadora/WhatsApp Web, donde el navegador no soporta
+// compartir archivos—: en vez de mandar el link directo a la imagen (que
+// WhatsApp muestra como texto plano, sin vista previa), se manda este
+// link, que trae la foto exacta en el <head> vía og:image, así que
+// WhatsApp SÍ la muestra como una tarjeta con miniatura de foto.
+app.get("/galeria/foto/:proyectoId/:modeloId/:tab/:index", (req, res) => {
+  try {
+    const manifestPath = path.join(__dirname, "public-galeria", "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const proyecto = manifest.proyectos.find((p) => p.id === req.params.proyectoId);
+    const modelo = proyecto && proyecto.modelos.find((m) => m.id === req.params.modeloId);
+    const tab = req.params.tab === "fotosAdicionales" ? "fotosAdicionales" : "fotos";
+    const indice = parseInt(req.params.index, 10);
+    const foto = modelo && Array.isArray(modelo[tab]) ? modelo[tab][indice] : null;
+
+    if (!proyecto || !modelo || !foto) {
+      return res.redirect("/galeria/");
+    }
+
+    const asesor = resolverAsesor(req.query);
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const imagenAbsoluta = `${baseUrl}/galeria/${foto}`;
+    const precio = modelo.precioFormato || "Consultar precio";
+    const titulo = `${modelo.nombre} — ${precio} | ${asesor.nombre}`;
+    const descripcion = `${proyecto.nombre}, Franco, Silao · Gto.`;
+    const urlPagina = `${baseUrl}/galeria/foto/${proyecto.id}/${modelo.id}/${tab}/${indice}?asesor=${asesor.slug}`;
+    const destinoGaleria = `/galeria/?asesor=${asesor.slug}#${proyecto.id}/${modelo.id}/f/${tab}/${indice}`;
+
+    const escapar = (s) => String(s).replace(/"/g, "&quot;");
+
+    res.send(`<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>${escapar(titulo)}</title>
+<meta name="description" content="${escapar(descripcion)}" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="${escapar(asesor.nombre)}" />
+<meta property="og:title" content="${escapar(titulo)}" />
+<meta property="og:description" content="${escapar(descripcion)}" />
+<meta property="og:image" content="${escapar(imagenAbsoluta)}" />
+<meta property="og:image:secure_url" content="${escapar(imagenAbsoluta)}" />
+<meta property="og:url" content="${escapar(urlPagina)}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapar(titulo)}" />
+<meta name="twitter:image" content="${escapar(imagenAbsoluta)}" />
+</head>
+<body>
+<p>Abriendo <a href="${escapar(destinoGaleria)}">${escapar(titulo)}</a>…</p>
+<script>location.replace(${JSON.stringify(destinoGaleria)});</script>
+</body>
+</html>`);
+  } catch (err) {
+    console.error("Error en /galeria/foto/:proyectoId/:modeloId/:tab/:index:", err);
+    res.redirect("/galeria/");
+  }
+});
+
+app.get("/galeria/asesores.json", (req, res) => {
+  res.json({ asesores: ASESORES, default: ASESOR_DEFAULT });
 });
 
 // Galería web pública de fotos (Diamante y Santuario), para compartir por
