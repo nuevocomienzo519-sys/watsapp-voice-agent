@@ -3,6 +3,41 @@
 
   const BASE_URL = window.location.origin + window.location.pathname.replace(/index\.html$/, "");
 
+  // Mismos slugs que ya usa la propiedad "Asesor" en HubSpot, para que un
+  // link ?asesor=irle sea consistente con el resto del sistema. Cada
+  // asesor manda su propio link (ej. ".../galeria/?asesor=irle") y la
+  // galería se muestra igual, solo cambia el nombre/marca mostrada.
+  const ASESORES = {
+    miguel_mondragon: { nombre: "Miguel Mondragon", iniciales: "MM" },
+    irle: { nombre: "Irly Lopez", iniciales: "IL" },
+    jessica: { nombre: "Jessica García", iniciales: "JG" },
+    alejandro: { nombre: "Alejandro Santibañez", iniciales: "AS" },
+  };
+  const ASESOR_DEFAULT = "miguel_mondragon";
+
+  const slugAsesor = new URLSearchParams(location.search).get("asesor");
+  const asesorActivo = {
+    slug: ASESORES[slugAsesor] ? slugAsesor : ASESOR_DEFAULT,
+    ...ASESORES[ASESORES[slugAsesor] ? slugAsesor : ASESOR_DEFAULT],
+  };
+
+  function aplicarMarcaAsesor() {
+    document.title = `${asesorActivo.nombre} — Diamante & Santuario`;
+    const iniciales = document.getElementById("topbarIniciales");
+    const nombre = document.getElementById("topbarNombre");
+    if (iniciales) iniciales.textContent = asesorActivo.iniciales;
+    if (nombre) nombre.textContent = asesorActivo.nombre;
+  }
+  aplicarMarcaAsesor();
+
+  // Agrega ?asesor=slug a cualquier ruta relativa de la galería (para que
+  // los links compartidos —modelo o foto individual— abran ya mostrando el
+  // nombre del asesor correcto, no siempre el mismo por default).
+  function conAsesor(rutaRelativa) {
+    const separador = rutaRelativa.includes("?") ? "&" : "?";
+    return `${rutaRelativa}${separador}asesor=${asesorActivo.slug}`;
+  }
+
   const els = {
     tabs: document.getElementById("proyectoTabs"),
     buscador: document.getElementById("buscador"),
@@ -275,14 +310,14 @@
     // directo a la imagen — por eso este caso arma su propio mensaje en
     // vez de pasar por el respaldo genérico de compartirArchivos.
     const compartidoComoArchivos = await compartirArchivos(items, {
-      titulo: "Nuevo Comienzo",
+      titulo: asesorActivo.nombre,
       textoWhatsapp,
       soloDescargarYCompartir: true,
     });
     if (compartidoComoArchivos) return;
 
     const lineas = modelos.map((m) => {
-      const url = urlAbsoluta(`modelo/${proyectoActivo}/${m.id}`);
+      const url = urlAbsoluta(conAsesor(`modelo/${proyectoActivo}/${m.id}`));
       return `${m.nombre}${m.precioFormato ? " — " + m.precioFormato : ""}\n${url}`;
     });
     const mensaje = encodeURIComponent(lineas.join("\n\n"));
@@ -312,7 +347,7 @@
       if (navigator.canShare && navigator.canShare({ files: archivos })) {
         await navigator.share({
           files: archivos,
-          title: titulo || "Nuevo Comienzo",
+          title: titulo || asesorActivo.nombre,
           text: textoWhatsapp || "",
         });
         return true;
@@ -511,11 +546,11 @@
       .sort((a, b) => a - b)
       .map((i) => ({
         url: fotos[i],
-        urlPreview: `foto/${proyectoActivo}/${modeloActivo.id}/${tabActiva}/${i}`,
+        urlPreview: conAsesor(`foto/${proyectoActivo}/${modeloActivo.id}/${tabActiva}/${i}`),
         nombre: `${modeloActivo.nombre}-foto${i + 1}`,
       }));
     compartirArchivos(items, {
-      textoWhatsapp: `${modeloActivo.nombre}${modeloActivo.precioFormato ? " — " + modeloActivo.precioFormato : ""} · Nuevo Comienzo`,
+      textoWhatsapp: `${modeloActivo.nombre}${modeloActivo.precioFormato ? " — " + modeloActivo.precioFormato : ""} · ${asesorActivo.nombre}`,
     });
   });
 
@@ -618,10 +653,10 @@
     // imagen: ese link trae etiquetas Open Graph (og:image, og:title), así
     // que al pegarlo en WhatsApp o Facebook se ve la foto de portada como
     // vista previa, en vez de un link pelón.
-    const url = urlAbsoluta(`modelo/${proyectoActivo}/${modeloActivo.id}`);
+    const url = urlAbsoluta(conAsesor(`modelo/${proyectoActivo}/${modeloActivo.id}`));
     compartir({
       titulo: modeloActivo.nombre,
-      texto: `${modeloActivo.nombre}${modeloActivo.precioFormato ? " — " + modeloActivo.precioFormato : ""} · Nuevo Comienzo`,
+      texto: `${modeloActivo.nombre}${modeloActivo.precioFormato ? " — " + modeloActivo.precioFormato : ""} · ${asesorActivo.nombre}`,
       url,
     });
   });
@@ -630,7 +665,7 @@
     const fotos = fotosDeTab();
     if (!fotos.length) return;
     const urlPreview = urlAbsoluta(
-      `foto/${proyectoActivo}/${modeloActivo.id}/${tabActiva}/${indiceActivo}`
+      conAsesor(`foto/${proyectoActivo}/${modeloActivo.id}/${tabActiva}/${indiceActivo}`)
     );
     compartir({
       titulo: modeloActivo.nombre,
