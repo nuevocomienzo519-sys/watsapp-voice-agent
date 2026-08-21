@@ -83,17 +83,32 @@
     </button>
     <div class="visor__imgwrap" id="visorImgWrap">
       <img id="visorImg" alt="" />
+      <iframe
+        id="visorVideo"
+        hidden
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+        frameborder="0"
+      ></iframe>
     </div>
     <button id="visorNext" class="visor__arrow visor__arrow--next" aria-label="Foto siguiente">
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M8.5 5.5 15 11l-6.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </div>
 
-  <div class="visor__bottom">
+  <div class="visor__bottom" id="visorAccionesFotos">
     <span id="visorContador" class="visor__contador"></span>
     <button id="visorCompartirFoto" class="btn btn--ghost-light">Compartir esta foto</button>
     <button id="visorDescargarFoto" class="btn btn--ghost-light" type="button">Descargar</button>
     <button id="visorBtnSeleccion" class="btn btn--ghost-light" type="button">Seleccionar fotos</button>
+  </div>
+
+  <!-- Barra de acción cuando se está viendo la pestaña Videos (reemplaza a
+       visorAccionesFotos — descargar/seleccionar no aplican a un video de
+       YouTube, solo compartir el link) -->
+  <div class="visor__bottom" id="visorAccionesVideo" hidden>
+    <span id="visorContadorVideo" class="visor__contador"></span>
+    <button id="visorCompartirVideo" class="btn btn--ghost-light" type="button">Compartir este video</button>
   </div>
 
   <!-- Barra de acción cuando se están eligiendo varias fotos de esta misma
