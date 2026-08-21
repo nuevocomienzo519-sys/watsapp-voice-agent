@@ -1,0 +1,7 @@
+# Archivos duplicados con nombres incorrectos fueron eliminados en este commit:
+# - lib/Whatsappcloudclient · JS
+# - lib/Whatsappcloudpayload · JS
+#
+# Los archivos correctos se mantienen:
+# - lib/whatsappCloudClient.js
+# - lib/whatsappCloudPayload.js
