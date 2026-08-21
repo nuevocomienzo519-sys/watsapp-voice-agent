@@ -13,6 +13,7 @@
     jessica: { nombre: "Jessica García", iniciales: "JG" },
     alejandro: { nombre: "Alejandro Santibañez", iniciales: "AS" },
     noemi: { nombre: "Noemí Lopez", iniciales: "NL" },
+    raquel: { nombre: "Raquel Rey", iniciales: "RR" },
   };
   const ASESOR_DEFAULT = "miguel_mondragon";
 
