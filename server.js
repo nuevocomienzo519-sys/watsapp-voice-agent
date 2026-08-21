@@ -179,16 +179,20 @@ app.get("/galeria/asesores.json", (req, res) => {
 app.use(
   "/galeria",
   express.static(path.join(__dirname, "public-galeria"), {
-    // Las fotos casi nunca cambian una vez subidas, así que se le pide al
-    // navegador que las guarde localmente por 7 días — en visitas repetidas
-    // (mismo asesor volviendo a la galería varias veces al día) ya no las
-    // vuelve a descargar, solo la primera vez sigue tardando lo normal.
-    maxAge: "7d",
+    // Por defecto SIN caché larga — así cualquier cambio a app.js,
+    // index.html, style.css o videos.json se ve de inmediato la próxima
+    // vez que alguien del equipo abra la galería, sin que se quede
+    // "pegada" una versión vieja por varios días. El navegador igual
+    // valida con el servidor (ETag) y en general no baja el archivo de
+    // nuevo si no cambió, así que no es lento — solo evita que quede
+    // atorado cuando SÍ cambió.
+    maxAge: 0,
     setHeaders: (res, filePath) => {
-      // manifest.json sí puede cambiar seguido (nuevas fotos, precios), así
-      // que ese en particular se cachea mucho menos tiempo.
-      if (filePath.endsWith("manifest.json")) {
-        res.setHeader("Cache-Control", "public, max-age=300"); // 5 minutos
+      // La caché larga de 7 días aplica SOLO a las fotos reales dentro de
+      // fotos/ (esas prácticamente nunca cambian una vez subidas) — ahí sí
+      // vale la pena evitar re-descargarlas en cada visita.
+      if (filePath.includes(`${path.sep}fotos${path.sep}`)) {
+        res.setHeader("Cache-Control", "public, max-age=604800"); // 7 días
       }
     },
   })
