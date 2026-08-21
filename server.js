@@ -487,6 +487,12 @@ app.post("/webhooks/whatsapp-cloud", async (req, res) => {
 // Embedded Signup, con la opción de coexistencia (mantener la app normal
 // de WhatsApp Business funcionando a la par). Solo se usa una vez durante
 // la migración; se puede quitar después si se quiere.
+// 
+// Configuración de Facebook: credenciales desde variables de entorno
+// con fallback a valores por defecto para compatibilidad.
+const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID || '1068574982377434';
+const FACEBOOK_CONFIG_ID = process.env.FACEBOOK_CONFIG_ID || '3312158045654863';
+
 app.get("/conectar-whatsapp", (_req, res) => {
   res.send(`<!DOCTYPE html>
 <html lang="es">
@@ -498,6 +504,7 @@ app.get("/conectar-whatsapp", (_req, res) => {
     button { background: #25D366; color: white; border: none; padding: 14px 28px; font-size: 16px; border-radius: 6px; cursor: pointer; }
     button:hover { background: #1ebe5b; }
     #resultado { margin-top: 20px; text-align: left; white-space: pre-wrap; background: #f4f4f4; padding: 12px; border-radius: 6px; font-size: 13px; }
+    .error { color: #d32f2f; }
   </style>
 </head>
 <body>
@@ -508,19 +515,28 @@ app.get("/conectar-whatsapp", (_req, res) => {
 
   <script>
     window.fbAsyncInit = function () {
-      FB.init({
-        appId: '1068574982377434',
-        cookie: true,
-        xfbml: true,
-        version: 'v22.0',
-      });
+      try {
+        FB.init({
+          appId: '${FACEBOOK_APP_ID}',
+          cookie: true,
+          xfbml: true,
+          version: 'v22.0',
+        });
+      } catch (err) {
+        document.getElementById('resultado').innerHTML = '<p class="error">⚠️ Error al inicializar Facebook SDK. Por favor, recarga la página.</p>';
+        console.error('Facebook init error:', err);
+      }
     };
+    
     (function (d, s, id) {
       var js, fjs = d.getElementsByTagName(s)[0];
       if (d.getElementById(id)) return;
       js = d.createElement(s);
       js.id = id;
       js.src = 'https://connect.facebook.net/es_LA/sdk.js';
+      js.onerror = function() {
+        document.getElementById('resultado').innerHTML = '<p class="error">⚠️ No se pudo cargar Facebook SDK. Verifica tu conexión a internet.</p>';
+      };
       fjs.parentNode.insertBefore(js, fjs);
     })(document, 'script', 'facebook-jssdk');
 
@@ -539,6 +555,11 @@ app.get("/conectar-whatsapp", (_req, res) => {
     });
 
     function launchWhatsAppSignup() {
+      if (typeof FB === 'undefined') {
+        document.getElementById('resultado').innerHTML = '<p class="error">⚠️ Facebook SDK aún no está disponible. Espera un momento e intenta de nuevo.</p>';
+        return;
+      }
+      
       FB.login(
         function (response) {
           if (response.status === 'connected' && response.authResponse) {
@@ -551,7 +572,7 @@ app.get("/conectar-whatsapp", (_req, res) => {
           }
         },
         {
-          config_id: '3312158045654863',
+          config_id: '${FACEBOOK_CONFIG_ID}',
           response_type: 'code',
           override_default_response_type: true,
           extras: {
