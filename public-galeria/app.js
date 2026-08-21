@@ -12,6 +12,7 @@
     irle: { nombre: "Irly Lopez", iniciales: "IL" },
     jessica: { nombre: "Jessica García", iniciales: "JG" },
     alejandro: { nombre: "Alejandro Santibañez", iniciales: "AS" },
+    noemi: { nombre: "Noemí Lopez", iniciales: "NL" },
   };
   const ASESOR_DEFAULT = "miguel_mondragon";
 
@@ -52,10 +53,15 @@
     visorTabs: document.getElementById("visorTabs"),
     visorImgWrap: document.getElementById("visorImgWrap"),
     visorImg: document.getElementById("visorImg"),
+    visorVideo: document.getElementById("visorVideo"),
     visorPrev: document.getElementById("visorPrev"),
     visorNext: document.getElementById("visorNext"),
     visorContador: document.getElementById("visorContador"),
     visorTiras: document.getElementById("visorTiras"),
+    visorAccionesFotos: document.getElementById("visorAccionesFotos"),
+    visorAccionesVideo: document.getElementById("visorAccionesVideo"),
+    visorContadorVideo: document.getElementById("visorContadorVideo"),
+    visorCompartirVideo: document.getElementById("visorCompartirVideo"),
     visorCompartirModelo: document.getElementById("visorCompartirModelo"),
     visorCompartirFoto: document.getElementById("visorCompartirFoto"),
     visorDescargarFoto: document.getElementById("visorDescargarFoto"),
@@ -75,9 +81,10 @@
   };
 
   let manifest = null;
+  let videos = {}; // { proyectoId: { modeloId: ["idYouTube1", ...] } }
   let proyectoActivo = null;
   let modeloActivo = null;
-  let tabActiva = "fotos"; // "fotos" | "fotosAdicionales"
+  let tabActiva = "fotos"; // "fotos" | "fotosAdicionales" | "videos"
   let indiceActivo = 0;
 
   let modoSeleccion = false;
@@ -104,6 +111,16 @@
       console.error(err);
       return;
     }
+
+    // videos.json es opcional — si no existe todavía o falla, la galería
+    // sigue funcionando normal, simplemente sin pestaña de Videos.
+    try {
+      const resVideos = await fetch("videos.json", { cache: "no-store" });
+      if (resVideos.ok) videos = await resVideos.json();
+    } catch (err) {
+      console.warn("No se pudo cargar videos.json (opcional):", err);
+    }
+
     proyectoActivo = manifest.proyectos[0]?.id || null;
 
     // Deep-link: si la URL trae #proyectoId/modeloId (viene del redirect de
@@ -384,6 +401,11 @@
     return tabActiva === "fotos" ? modeloActivo.fotos : modeloActivo.fotosAdicionales;
   }
 
+  function videosDeModelo(modelo) {
+    if (!modelo) return [];
+    return (videos[proyectoActivo] && videos[proyectoActivo][modelo.id]) || [];
+  }
+
   function abrirVisor(modelo) {
     modeloActivo = modelo;
     tabActiva = modelo.fotos.length ? "fotos" : "fotosAdicionales";
@@ -417,14 +439,23 @@
 
   function pintarTabsVisor() {
     els.visorTabs.innerHTML = "";
-    const hayFotos = modeloActivo.fotos.length > 0;
-    const hayAdicionales = modeloActivo.fotosAdicionales.length > 0;
-    if (!(hayFotos && hayAdicionales)) return; // no mostrar tabs si solo hay una categoría
+    const tabs = [];
+    if (modeloActivo.fotos.length) {
+      tabs.push({ key: "fotos", label: `Fotos (${modeloActivo.fotos.length})` });
+    }
+    if (modeloActivo.fotosAdicionales.length) {
+      tabs.push({
+        key: "fotosAdicionales",
+        label: `Adicionales (${modeloActivo.fotosAdicionales.length})`,
+      });
+    }
+    const listaVideos = videosDeModelo(modeloActivo);
+    if (listaVideos.length) {
+      tabs.push({ key: "videos", label: `Videos (${listaVideos.length})` });
+    }
+    if (tabs.length < 2) return; // no mostrar tabs si solo hay una categoría en total
 
-    [
-      { key: "fotos", label: `Fotos (${modeloActivo.fotos.length})` },
-      { key: "fotosAdicionales", label: `Adicionales (${modeloActivo.fotosAdicionales.length})` },
-    ].forEach(({ key, label }) => {
+    tabs.forEach(({ key, label }) => {
       const btn = document.createElement("button");
       btn.textContent = label;
       btn.setAttribute("aria-selected", String(key === tabActiva));
@@ -433,7 +464,11 @@
         indiceActivo = 0;
         pintarTabsVisor();
         pintarTiras();
-        mostrarFoto(0);
+        if (key === "videos") {
+          mostrarVideo(0);
+        } else {
+          mostrarFoto(0);
+        }
       });
       els.visorTabs.appendChild(btn);
     });
@@ -446,6 +481,27 @@
     els.visorImg.src = fotos[indiceActivo];
     els.visorImg.alt = `${modeloActivo.nombre} — foto ${indiceActivo + 1}`;
     els.visorContador.textContent = `${indiceActivo + 1} / ${fotos.length}`;
+    // Por si veníamos de la pestaña Videos: mostrar la imagen, detener el
+    // video (limpiando el src) y regresar a la barra de acciones de fotos.
+    els.visorImg.hidden = false;
+    els.visorVideo.hidden = true;
+    els.visorVideo.src = "";
+    els.visorAccionesFotos.hidden = false;
+    els.visorAccionesVideo.hidden = true;
+    resaltarTira();
+  }
+
+  function mostrarVideo(indice) {
+    const lista = videosDeModelo(modeloActivo);
+    if (lista.length === 0) return;
+    indiceActivo = ((indice % lista.length) + lista.length) % lista.length;
+    const idYoutube = lista[indiceActivo];
+    els.visorVideo.src = `https://www.youtube.com/embed/${idYoutube}`;
+    els.visorImg.hidden = true;
+    els.visorVideo.hidden = false;
+    els.visorAccionesFotos.hidden = true;
+    els.visorAccionesVideo.hidden = false;
+    els.visorContadorVideo.textContent = `${indiceActivo + 1} / ${lista.length}`;
     resaltarTira();
   }
 
@@ -453,6 +509,23 @@
     const fotos = fotosDeTab();
     els.visorTiras.innerHTML = "";
     els.visorTiras.classList.toggle("modo-seleccion", modoSeleccionFotos);
+
+    if (tabActiva === "videos") {
+      const lista = videosDeModelo(modeloActivo);
+      lista.forEach((idYoutube, i) => {
+        const item = document.createElement("div");
+        item.className = "visor__tira-item visor__tira-item--video";
+        const img = document.createElement("img");
+        img.src = `https://img.youtube.com/vi/${idYoutube}/mqdefault.jpg`;
+        img.loading = "lazy";
+        img.alt = "";
+        item.appendChild(img);
+        item.addEventListener("click", () => mostrarVideo(i));
+        els.visorTiras.appendChild(item);
+      });
+      resaltarTira();
+      return;
+    }
 
     fotos.forEach((src, i) => {
       const item = document.createElement("div");
@@ -585,17 +658,29 @@
   }
 
   els.visorCerrar.addEventListener("click", cerrarVisor);
-  els.visorPrev.addEventListener("click", () => mostrarFoto(indiceActivo - 1));
-  els.visorNext.addEventListener("click", () => mostrarFoto(indiceActivo + 1));
+  els.visorPrev.addEventListener("click", () => {
+    if (tabActiva === "videos") mostrarVideo(indiceActivo - 1);
+    else mostrarFoto(indiceActivo - 1);
+  });
+  els.visorNext.addEventListener("click", () => {
+    if (tabActiva === "videos") mostrarVideo(indiceActivo + 1);
+    else mostrarFoto(indiceActivo + 1);
+  });
 
   document.addEventListener("keydown", (e) => {
     if (els.visor.hidden) return;
     if (e.key === "Escape") cerrarVisor();
-    if (e.key === "ArrowLeft") mostrarFoto(indiceActivo - 1);
-    if (e.key === "ArrowRight") mostrarFoto(indiceActivo + 1);
+    if (e.key === "ArrowLeft") {
+      if (tabActiva === "videos") mostrarVideo(indiceActivo - 1);
+      else mostrarFoto(indiceActivo - 1);
+    }
+    if (e.key === "ArrowRight") {
+      if (tabActiva === "videos") mostrarVideo(indiceActivo + 1);
+      else mostrarFoto(indiceActivo + 1);
+    }
   });
 
-  // Swipe táctil sobre el escenario de la foto
+  // Swipe táctil sobre el escenario de la foto (o video)
   (function habilitarSwipe() {
     const stage = document.getElementById("visorImgWrap");
     let xInicio = null;
@@ -617,8 +702,9 @@
         const dx = e.changedTouches[0].clientX - xInicio;
         const dy = e.changedTouches[0].clientY - yInicio;
         if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) {
-          if (dx < 0) mostrarFoto(indiceActivo + 1);
-          else mostrarFoto(indiceActivo - 1);
+          const avanzar = tabActiva === "videos" ? mostrarVideo : mostrarFoto;
+          if (dx < 0) avanzar(indiceActivo + 1);
+          else avanzar(indiceActivo - 1);
         }
         xInicio = null;
         yInicio = null;
@@ -671,6 +757,21 @@
       titulo: modeloActivo.nombre,
       texto: `${modeloActivo.nombre} — foto ${indiceActivo + 1}`,
       url: urlPreview,
+    });
+  });
+
+  els.visorCompartirVideo.addEventListener("click", () => {
+    const lista = videosDeModelo(modeloActivo);
+    if (!lista.length) return;
+    const idYoutube = lista[indiceActivo];
+    // Se comparte el link directo de YouTube (youtu.be/...): WhatsApp y
+    // Facebook generan su propia vista previa con miniatura automáticamente
+    // para links de YouTube, no hace falta una página propia con Open Graph
+    // como con las fotos.
+    compartir({
+      titulo: modeloActivo.nombre,
+      texto: `${modeloActivo.nombre} — video`,
+      url: `https://youtu.be/${idYoutube}`,
     });
   });
 
