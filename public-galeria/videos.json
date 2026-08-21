@@ -1,0 +1,11 @@
+{
+  "_comentario": "Agrega aquí los videos de YouTube por modelo. El 'id' es la parte final de la URL del video (https://youtu.be/ESTE_ID o https://www.youtube.com/watch?v=ESTE_ID). Ejemplo real más abajo, comentado.",
+
+  "_ejemplo": {
+    "diamante-casa-modelo-diamante-2-900-000": ["dQw4w9WgXcQ"]
+  },
+
+  "diamante": {},
+
+  "santuario": {}
+}
