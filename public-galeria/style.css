@@ -483,6 +483,31 @@ button { font-family: inherit; cursor: pointer; }
   -webkit-user-drag: none;
 }
 
+.visor__imgwrap iframe {
+  width: 100%;
+  height: 100%;
+  max-width: 900px;
+  max-height: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.visor__tira-item--video {
+  position: relative;
+}
+
+.visor__tira-item--video::after {
+  content: "▶";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 14px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
 .visor__arrow {
   background: rgba(255, 255, 255, 0.08);
   border: none;
@@ -511,6 +536,8 @@ button { font-family: inherit; cursor: pointer; }
   padding: 10px 16px;
   flex-shrink: 0;
 }
+
+.visor__bottom[hidden] { display: none; }
 
 .visor__contador {
   font-size: 12.5px;
