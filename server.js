@@ -37,6 +37,7 @@ const ASESORES = {
   irle: { nombre: "Irly Lopez", iniciales: "IL" },
   jessica: { nombre: "Jessica García", iniciales: "JG" },
   alejandro: { nombre: "Alejandro Santibañez", iniciales: "AS" },
+  noemi: { nombre: "Noemí Lopez", iniciales: "NL" },
 };
 const ASESOR_DEFAULT = "miguel_mondragon";
 
