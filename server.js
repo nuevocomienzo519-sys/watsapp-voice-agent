@@ -3,12 +3,12 @@ const path = require("path");
 const fs = require("fs");
 const express = require("express");
 const compression = require("compression");
-const { downloadAttachment, sendVoiceMessage, sendTextMessage } = require("./lib/timelinesClient");
+const { downloadAttachment, sendVoiceMessage, sendTextMessage } = require("./lib/whatsappCloudClient");
 const { transcribeAudio } = require("./lib/stt");
 const { generateReply } = require("./lib/llm");
 const { synthesizeSpeech } = require("./lib/tts");
 const { convertToOggOpus } = require("./lib/audioConvert");
-const { parseTimelinesPayload, isAudioAttachment } = require("./lib/timelinesPayload");
+const { parseWhatsappCloudPayload, isAudioAttachment } = require("./lib/whatsappCloudPayload");
 const {
   procesarChatExportado,
   actualizarTelefonoContacto,
@@ -25,7 +25,34 @@ const openaiProxyRouter = require("./routes/openaiProxy");
 
 const app = express();
 app.use(compression());
-app.use(express.json({ limit: "20mb" }));
+const crypto = require("crypto");
+
+app.use(
+  express.json({
+    limit: "20mb",
+    // Guarda el body crudo (antes de parsear JSON) para poder verificar
+    // la firma que manda Meta en cada webhook — así confirmamos que el
+    // mensaje realmente viene de Meta y no de alguien más pegándole a
+    // esta URL pública.
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
+
+function firmaWhatsappValida(req) {
+  const appSecret = process.env.WHATSAPP_APP_SECRET;
+  if (!appSecret) return true; // sin app secret configurado, no se valida (no recomendado en producción)
+  const firmaRecibida = req.get("x-hub-signature-256");
+  if (!firmaRecibida || !req.rawBody) return false;
+  const firmaEsperada =
+    "sha256=" + crypto.createHmac("sha256", appSecret).update(req.rawBody).digest("hex");
+  try {
+    return crypto.timingSafeEqual(Buffer.from(firmaRecibida), Buffer.from(firmaEsperada));
+  } catch {
+    return false; // longitudes distintas u otro error de formato
+  }
+}
 app.use(extraerFotosRouter);
 app.use(openaiProxyRouter);
 
@@ -198,12 +225,19 @@ app.use(
   })
 );
 
-// Evita procesar el mismo mensaje dos veces si TimelinesAI reintenta el webhook.
+// Evita procesar el mismo mensaje dos veces si Meta reintenta el webhook.
 const processedMessageIds = new Set();
 
-// Chats donde el agente NO debe responder automáticamente, salvo que el
-// mensaje incluya la palabra clave de activación. Por ahora solo el grupo
-// "Los Miguelines" (chat_id 57693202 en TimelinesAI).
+// ⚠️ AVISO: este filtro identificaba el grupo "Los Miguelines" por su
+// chat_id de TimelinesAI (57693202) — un concepto que existía porque
+// TimelinesAI sincronizaba tu WhatsApp Web completo, grupos incluidos. La
+// API oficial de WhatsApp Cloud (Meta) NO funciona así: es exclusiva para
+// conversaciones directas con clientes en el número de negocio, y por lo
+// general NO recibe ni permite mensajes de grupos. Es decir, es probable
+// que este filtro ya no tenga ningún chat que silenciar — no se quitó el
+// código por si acaso, pero probablemente ya no aplica. Si necesitas que
+// el equipo interactúe con el bot para pruebas, habrá que pensar otro
+// mecanismo (ej. un chat 1-a-1 dedicado a pruebas).
 const CHATS_SILENCIADOS = new Set([57693202]);
 const PALABRA_ACTIVACION = "@asistentewaba";
 
@@ -225,40 +259,54 @@ function appendHistory(chatId, userText, replyText) {
   conversationHistory.set(chatId, historial);
 }
 
-app.post("/webhooks/timelines", async (req, res) => {
-  // 1. Verificación básica del secreto compartido
-  if (req.query.secret !== process.env.WEBHOOK_SECRET) {
-    return res.status(401).send("No autorizado");
+// Meta llama a esta ruta UNA VEZ, al activar el webhook desde el panel de
+// Meta for Developers (WhatsApp > Configuración > Webhook), para
+// confirmar que el servidor es tuyo. Debe responder EXACTAMENTE el valor
+// de "hub.challenge" si el "hub.verify_token" coincide con el que tú
+// definiste en Meta y en la variable de entorno WHATSAPP_VERIFY_TOKEN.
+app.get("/webhooks/whatsapp-cloud", (req, res) => {
+  const modo = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+  if (modo === "subscribe" && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+    return res.status(200).send(challenge);
+  }
+  return res.sendStatus(403);
+});
+
+app.post("/webhooks/whatsapp-cloud", async (req, res) => {
+  if (!firmaWhatsappValida(req)) {
+    return res.status(401).send("Firma inválida");
   }
 
-  // Responde rápido a TimelinesAI para que no reintente por timeout;
-  // el procesamiento real sigue después, de forma asíncrona.
+  // Responde rápido a Meta para que no reintente por timeout; el
+  // procesamiento real sigue después, de forma asíncrona.
   res.status(200).send("OK");
 
   try {
     // Log completo del payload. Déjalo activo las primeras semanas: si
-    // algo del mapeo de abajo no aplica a tu cuenta, aquí está la fuente
-    // de verdad para corregirlo en lib/timelinesPayload.js.
-    console.log("Payload recibido de TimelinesAI:", JSON.stringify(req.body, null, 2));
+    // algo del mapeo de abajo no aplica, aquí está la fuente de verdad
+    // para corregirlo en lib/whatsappCloudPayload.js.
+    console.log("Payload recibido de WhatsApp Cloud API:", JSON.stringify(req.body, null, 2));
 
-    const { messageId, chatId, direction, phone, attachment, text } = parseTimelinesPayload(req.body);
-    const senderName = req.body?.message?.sender?.full_name || null;
+    const { messageId, chatId, direction, phone, senderName, attachment, text } =
+      parseWhatsappCloudPayload(req.body);
 
     if (!messageId || processedMessageIds.has(messageId)) return;
     processedMessageIds.add(messageId);
 
     if (direction !== "incoming" || !chatId) {
-      return; // ignoramos mensajes salientes propios, eventos sin chat, etc.
+      return; // webhooks de status (✓✓ entregado/leído) u otros eventos sin mensaje
     }
 
     const audioAdjunto = isAudioAttachment(attachment);
 
     // --- FILTRO DE CHATS SILENCIADOS ---
     // Va ANTES de descargar adjuntos, transcribir audio, o procesar chat
-    // exportado: nada de eso debe llamar a la API de TimelinesAI si el
-    // chat está silenciado y no trae la palabra de activación.
+    // exportado: nada de eso debe llamar a la API de WhatsApp si el chat
+    // está silenciado y no trae la palabra de activación.
     // Number(chatId) por seguridad: si chatId llega como string desde
-    // parseTimelinesPayload, Set.has() con un number no lo detecta.
+    // parseWhatsappCloudPayload, Set.has() con un number no lo detecta.
     const chatSilenciado = CHATS_SILENCIADOS.has(Number(chatId));
     let textoLimpio = text;
 
@@ -523,6 +571,6 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Servidor escuchando en puerto ${port}`);
   console.log(
-    `URL de webhook a registrar en TimelinesAI: https://TU-DOMINIO/webhooks/timelines?secret=${process.env.WEBHOOK_SECRET}`
+    `URL de webhook a registrar en Meta (WhatsApp > Configuración > Webhook): https://TU-DOMINIO/webhooks/whatsapp-cloud`
   );
 });
