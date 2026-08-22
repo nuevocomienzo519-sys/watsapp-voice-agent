@@ -492,12 +492,25 @@
     resaltarTira();
   }
 
+  // Cada entrada en videos.json puede ser: un ID de YouTube ("dQw4w9WgXcQ")
+  // o un link completo de un video de Facebook ("https://www.facebook.com/...
+  // /videos/123..." o "https://fb.watch/..."). Se detecta por si empieza
+  // con "http" — así el mismo array puede mezclar ambos tipos sin
+  // problema.
+  function esVideoDeFacebook(entrada) {
+    return typeof entrada === "string" && entrada.startsWith("http");
+  }
+
   function mostrarVideo(indice) {
     const lista = videosDeModelo(modeloActivo);
     if (lista.length === 0) return;
     indiceActivo = ((indice % lista.length) + lista.length) % lista.length;
-    const idYoutube = lista[indiceActivo];
-    els.visorVideo.src = `https://www.youtube.com/embed/${idYoutube}`;
+    const entrada = lista[indiceActivo];
+    els.visorVideo.src = esVideoDeFacebook(entrada)
+      ? `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(
+          entrada
+        )}&show_text=false&width=560`
+      : `https://www.youtube.com/embed/${entrada}`;
     els.visorImg.hidden = true;
     els.visorVideo.hidden = false;
     els.visorAccionesFotos.hidden = true;
@@ -513,11 +526,23 @@
 
     if (tabActiva === "videos") {
       const lista = videosDeModelo(modeloActivo);
-      lista.forEach((idYoutube, i) => {
+      lista.forEach((entrada, i) => {
         const item = document.createElement("div");
         item.className = "visor__tira-item visor__tira-item--video";
         const img = document.createElement("img");
-        img.src = `https://img.youtube.com/vi/${idYoutube}/mqdefault.jpg`;
+        if (esVideoDeFacebook(entrada)) {
+          // Facebook no da una forma sencilla de obtener la miniatura real
+          // del video sin credenciales de su API — se usa un ícono
+          // genérico en su lugar (fondo azul de Facebook + ▶, ya dibujado
+          // como SVG en línea, no necesita descargar nada).
+          img.src =
+            "data:image/svg+xml;utf8," +
+            encodeURIComponent(
+              '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="#1877F2"/><text x="50" y="58" font-size="40" text-anchor="middle" fill="white">▶</text></svg>'
+            );
+        } else {
+          img.src = `https://img.youtube.com/vi/${entrada}/mqdefault.jpg`;
+        }
         img.loading = "lazy";
         img.alt = "";
         item.appendChild(img);
