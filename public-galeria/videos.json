@@ -1,8 +1,11 @@
 {
-  "_comentario": "Agrega aquí los videos de YouTube por modelo. El 'id' es la parte final de la URL del video (https://youtu.be/ESTE_ID o https://www.youtube.com/watch?v=ESTE_ID). Ejemplo real más abajo, comentado.",
+  "_comentario": "Agrega aquí los videos por modelo. Acepta 2 formatos, mezclados en la misma lista si quieres: 1) Un ID de YouTube (ej. 'dQw4w9WgXcQ', la parte después de v= en la URL) 2) Un link COMPLETO de un video de Facebook (ej. 'https://www.facebook.com/NuevoComienzo/videos/123456789/' o 'https://fb.watch/abc123/') — para Facebook, el video debe ser público (no privado) para que se vea en la página. Ejemplos reales más abajo, comentados.",
 
   "_ejemplo": {
-    "diamante-casa-modelo-diamante-2-900-000": ["dQw4w9WgXcQ"]
+    "diamante-casa-modelo-diamante-2-900-000": [
+      "dQw4w9WgXcQ",
+      "https://www.facebook.com/NuevoComienzo/videos/123456789/"
+    ]
   },
 
   "diamante": {},
