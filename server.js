@@ -588,46 +588,49 @@ app.get("/conectar-whatsapp", (_req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// TEMPORAL: alta del número en la Cloud API de Meta (endpoint /register).
-// Meta no ofrece este paso desde la interfaz de Business Manager: hay que
-// llamarlo por API. Se abre una sola vez desde el navegador:
-//   /registrar-numero?secret=TU_WEBHOOK_SECRET
-// Una vez que responda {"success": true} se puede borrar este bloque.
+// TEMPORAL: diagnóstico del token de la Cloud API. Usa /debug_token de Meta
+// para confirmar si WHATSAPP_CLOUD_TOKEN es válido, sin exponer el token en
+// ningún momento (solo se ven metadatos: válido/inválido, permisos, fecha
+// de expiración). Se abre desde el navegador:
+//   /diagnostico-token?secret=TU_WEBHOOK_SECRET
+// Se puede borrar junto con /registrar-numero una vez resuelto el 401.
 // ---------------------------------------------------------------------------
-app.get("/registrar-numero", async (req, res) => {
+app.get("/diagnostico-token", async (req, res) => {
   if (req.query.secret !== process.env.WEBHOOK_SECRET) {
     return res.status(403).json({ error: "no autorizado" });
   }
 
-  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const token = process.env.META_TOKEN || process.env.WHATSAPP_CLOUD_TOKEN;
-  const pin = process.env.WA_PIN || "593471";
+  const tokenAInspeccionar = (process.env.WHATSAPP_CLOUD_TOKEN || "").trim();
+  const tokenParaConsultar = (process.env.META_TOKEN || tokenAInspeccionar).trim();
 
-  if (!phoneId || !token) {
+  if (!tokenAInspeccionar) {
     return res.status(500).json({
-      error: "Faltan variables de entorno",
-      WHATSAPP_PHONE_NUMBER_ID: phoneId ? "ok" : "FALTA",
-      META_TOKEN: token ? "ok" : "FALTA",
+      error: "WHATSAPP_CLOUD_TOKEN no está definido en las variables de entorno de Render",
     });
   }
 
   try {
-    const r = await fetch(
-      `https://graph.facebook.com/v21.0/${phoneId}/register`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ messaging_product: "whatsapp", pin }),
-      }
-    );
+    const url = `https://graph.facebook.com/debug_token?input_token=${encodeURIComponent(
+      tokenAInspeccionar
+    )}&access_token=${encodeURIComponent(tokenParaConsultar)}`;
+    const r = await fetch(url);
     const data = await r.json();
-    console.log("Registro Cloud API:", r.status, JSON.stringify(data));
-    res.status(r.status).json({ status: r.status, phoneId, respuesta: data });
+    const info = data.data || {};
+    res.status(r.status).json({
+      variable_inspeccionada: "WHATSAPP_CLOUD_TOKEN",
+      longitud_del_token: tokenAInspeccionar.length,
+      es_valido: info.is_valid ?? null,
+      tipo: info.type ?? null,
+      app_id: info.app_id ?? null,
+      permisos: info.scopes ?? null,
+      expira: info.expires_at
+        ? new Date(info.expires_at * 1000).toISOString()
+        : info.expires_at === 0
+        ? "nunca"
+        : null,
+      error_de_meta: data.error || info.error || null,
+    });
   } catch (err) {
-    console.error("Error registrando el número:", err);
     res.status(500).json({ error: err.message });
   }
 });
