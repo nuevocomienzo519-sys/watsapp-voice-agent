@@ -1,157 +1,120 @@
-const fetch = require("node-fetch");
+  const fetch = require("node-fetch");
 const FormData = require("form-data");
 
 const GRAPH_VERSION = "v20.0";
-const TOKEN = process.env.WHATSAPP_CLOUD_TOKEN;
-const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+// .trim() por si el token se pegó con un espacio o salto de línea de más
+// al copiarlo desde Meta — causa típica de "401 Authentication Error".
+// Con fallback a META_TOKEN si WHATSAPP_CLOUD_TOKEN no está definido.
+const TOKEN = (process.env.WHATSAPP_CLOUD_TOKEN || process.env.META_TOKEN || "").trim();
+const PHONE_NUMBER_ID = (process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim();
 const BASE = `https://graph.facebook.com/${GRAPH_VERSION}/${PHONE_NUMBER_ID}`;
 
 function authHeaders(extra = {}) {
-  return { Authorization: `Bearer ${TOKEN}`, ...extra };
+    return { Authorization: `Bearer ${TOKEN}`, ...extra };
 }
 
-/**
- * Descarga un adjunto (nota de voz, imagen, etc.) de WhatsApp Cloud API.
- * A diferencia de TimelinesAI (que daba una URL directa descargable), Meta
- * solo entrega un "media ID" en el webhook — hay que resolverlo en DOS
- * pasos: 1) pedirle a Graph la URL real (temporal, expira rápido) y
- * 2) descargar esa URL, mandando el mismo token de autorización.
- * @param {string} mediaId
- * @returns {Promise<Buffer>}
- */
 async function downloadAttachment(mediaId) {
-  const resInfo = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${mediaId}`, {
-    headers: authHeaders(),
-  });
-  if (!resInfo.ok) {
-    throw new Error(
-      `No se pudo resolver el adjunto de WhatsApp: ${resInfo.status} ${await resInfo.text()}`
-    );
-  }
-  const { url } = await resInfo.json();
-  const resFile = await fetch(url, { headers: authHeaders() });
-  if (!resFile.ok) {
-    throw new Error(
-      `No se pudo descargar el adjunto de WhatsApp: ${resFile.status} ${resFile.statusText}`
-    );
-  }
-  return Buffer.from(await resFile.arrayBuffer());
+    const resInfo = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${mediaId}`, {
+          headers: authHeaders(),
+    });
+    if (!resInfo.ok) {
+          throw new Error(
+                  `No se pudo resolver el adjunto de WhatsApp: ${resInfo.status} ${await resInfo.text()}`
+                );
+    }
+    const { url } = await resInfo.json();
+    const resFile = await fetch(url, { headers: authHeaders() });
+    if (!resFile.ok) {
+          throw new Error(
+                  `No se pudo descargar el adjunto de WhatsApp: ${resFile.status} ${resFile.statusText}`
+                );
+    }
+    return Buffer.from(await resFile.arrayBuffer());
 }
 
-/**
- * Sube un archivo de audio al servidor de medios de Meta y devuelve su
- * media ID — paso previo obligatorio antes de poder mandarlo como mensaje.
- */
 async function subirMediaAudio(audioBuffer, filename) {
-  const form = new FormData();
-  form.append("messaging_product", "whatsapp");
-  form.append("file", audioBuffer, { filename, contentType: "audio/ogg; codecs=opus" });
-  const res = await fetch(`${BASE}/media`, {
-    method: "POST",
-    headers: authHeaders(form.getHeaders()),
-    body: form,
-  });
-  if (!res.ok) {
-    throw new Error(`Fallo al subir el audio a WhatsApp: ${res.status} - ${await res.text()}`);
-  }
-  const json = await res.json();
-  return json.id;
+    const form = new FormData();
+    form.append("messaging_product", "whatsapp");
+    form.append("file", audioBuffer, { filename, contentType: "audio/ogg; codecs=opus" });
+    const res = await fetch(`${BASE}/media`, {
+          method: "POST",
+          headers: authHeaders(form.getHeaders()),
+          body: form,
+    });
+    if (!res.ok) {
+          throw new Error(`Fallo al subir el audio a WhatsApp: ${res.status} - ${await res.text()}`);
+    }
+    const json = await res.json();
+    return json.id;
 }
 
-/**
- * Envía un mensaje de voz (audio) de vuelta al mismo número. Funciona sin
- * plantilla aprobada porque siempre es una RESPUESTA a algo que el cliente
- * acaba de mandar (ventana de servicio de 24h de Meta) — el uso normal de
- * este bot.
- * @param {string} to - Número SIN "+" (llega así en chatId del webhook).
- */
 async function sendVoiceMessage(to, audioBuffer, filename = "respuesta.ogg") {
-  const mediaId = await subirMediaAudio(audioBuffer, filename);
-  const res = await fetch(`${BASE}/messages`, {
-    method: "POST",
-    headers: { ...authHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to,
-      type: "audio",
-      audio: { id: mediaId },
-    }),
-  });
-  if (!res.ok) {
-    throw new Error(
-      `Fallo al enviar el mensaje de voz por WhatsApp: ${res.status} - ${await res.text()}`
-    );
-  }
-  return res.json();
+    const mediaId = await subirMediaAudio(audioBuffer, filename);
+    const res = await fetch(`${BASE}/messages`, {
+          method: "POST",
+          headers: { ...authHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({
+                  messaging_product: "whatsapp",
+                  to,
+                  type: "audio",
+                  audio: { id: mediaId },
+          }),
+    });
+    if (!res.ok) {
+          throw new Error(
+                  `Fallo al enviar el mensaje de voz por WhatsApp: ${res.status} - ${await res.text()}`
+                );
+    }
+    return res.json();
 }
 
-/**
- * Envía un mensaje de texto de vuelta al mismo número (respuesta dentro de
- * la ventana de servicio de 24h — no requiere plantilla aprobada).
- */
 async function sendTextMessage(to, text) {
-  const res = await fetch(`${BASE}/messages`, {
-    method: "POST",
-    headers: { ...authHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to,
-      type: "text",
-      text: { body: text, preview_url: false },
-    }),
-  });
-  if (!res.ok) {
-    throw new Error(
-      `Fallo al enviar el mensaje de texto por WhatsApp: ${res.status} - ${await res.text()}`
-    );
-  }
-  return res.json();
+    const res = await fetch(`${BASE}/messages`, {
+          method: "POST",
+          headers: { ...authHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({
+                  messaging_product: "whatsapp",
+                  to,
+                  type: "text",
+                  text: { body: text, preview_url: false },
+          }),
+    });
+    if (!res.ok) {
+          throw new Error(
+                  `Fallo al enviar el mensaje de texto por WhatsApp: ${res.status} - ${await res.text()}`
+                );
+    }
+    return res.json();
 }
 
-/**
- * IMPORTANTE — a diferencia de TimelinesAI: iniciar un chat NUEVO con
- * alguien que no te ha escrito en las últimas 24h (ej. "retoma de
- * contacto" con un lead viejo) NO se puede hacer con texto libre en la
- * Cloud API de Meta — lo EXIGE mandar por una "plantilla de mensaje"
- * previamente creada y aprobada por Meta (Business Manager > Administrador
- * de WhatsApp > Plantillas de mensajes), pensado para evitar spam masivo.
- * Esta función queda lista para usarse en cuanto exista una plantilla
- * aprobada — pásale su nombre exacto, el idioma, y los valores de sus
- * variables en orden.
- */
 async function enviarMensajePlantilla(to, nombrePlantilla, idioma, parametros = []) {
-  const res = await fetch(`${BASE}/messages`, {
-    method: "POST",
-    headers: { ...authHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to,
-      type: "template",
-      template: {
-        name: nombrePlantilla,
-        language: { code: idioma || "es_MX" },
-        components: parametros.length
-          ? [
-              {
-                type: "body",
-                parameters: parametros.map((texto) => ({ type: "text", text: texto })),
-              },
-            ]
-          : undefined,
-      },
-    }),
-  });
-  if (!res.ok) {
-    throw new Error(
-      `Fallo al enviar la plantilla por WhatsApp: ${res.status} - ${await res.text()}`
-    );
-  }
-  return res.json();
+    const res = await fetch(`${BASE}/messages`, {
+          method: "POST",
+          headers: { ...authHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({
+                  messaging_product: "whatsapp",
+                  to,
+                  type: "template",
+                  template: {
+                            name: nombrePlantilla,
+                            language: { code: idioma || "es_MX" },
+                            components: parametros.length
+                              ? [{ type: "body", parameters: parametros.map((texto) => ({ type: "text", text: texto })) }]
+                                        : undefined,
+                  },
+          }),
+    });
+    if (!res.ok) {
+          throw new Error(
+                  `Fallo al enviar la plantilla por WhatsApp: ${res.status} - ${await res.text()}`
+                );
+    }
+    return res.json();
 }
 
 module.exports = {
-  downloadAttachment,
-  sendVoiceMessage,
-  sendTextMessage,
-  enviarMensajePlantilla,
+    downloadAttachment,
+    sendVoiceMessage,
+    sendTextMessage,
+    enviarMensajePlantilla,
 };
