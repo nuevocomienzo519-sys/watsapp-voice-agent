@@ -20,6 +20,60 @@ const {
   leerPendiente,
   borrarPendiente,
 } = require("./lib/confirmacionesPendientes");
+const exportacion = require("./lib/exportacionPendiente");
+const { enviarMensajePlantilla } = require("./lib/whatsappCloudClient");
+const { actualizarNombreContacto } = require("./lib/hubspot");
+
+// Plantilla aprobada en Meta para retomar el contacto con el cliente.
+const PLANTILLA_SEGUIMIENTO = process.env.PLANTILLA_SEGUIMIENTO || "seguimiento_contacto";
+const PLANTILLA_IDIOMA = process.env.PLANTILLA_IDIOMA || "es_MX";
+
+/**
+ * Cierra una exportación: guarda nombre y teléfono en HubSpot, le manda al
+ * cliente el mensaje de seguimiento por plantilla, y desbloquea el chat.
+ * Si el envío de la plantilla falla, la exportación se cierra igual (los
+ * datos ya quedaron en el CRM) y se avisa para mandarlo a mano.
+ */
+async function cerrarExportacion(chatId, pendiente) {
+  const { contactoId, nombreCliente, telefono, resumenConversacion } = pendiente;
+
+  if (contactoId && nombreCliente) {
+    try {
+      await actualizarNombreContacto(contactoId, nombreCliente);
+    } catch (err) {
+      console.error("[exportacion] No se pudo actualizar el nombre:", err.message);
+    }
+  }
+  if (contactoId && telefono) {
+    await actualizarTelefonoContacto(contactoId, telefono);
+  }
+
+  let avisoEnvio;
+  try {
+    const primerNombre = String(nombreCliente).trim().split(/\s+/)[0];
+    const linea =
+      resumenConversacion ||
+      "Quedamos pendientes de tu interés en una de nuestras casas.";
+    await enviarMensajePlantilla(
+      telefono.replace(/^\+/, ""),
+      PLANTILLA_SEGUIMIENTO,
+      PLANTILLA_IDIOMA,
+      [primerNombre, linea.slice(0, 250)]
+    );
+    avisoEnvio = `📤 Mensaje de seguimiento enviado a ${telefono}.`;
+  } catch (err) {
+    console.error("[exportacion] Falló el envío de la plantilla:", err.message);
+    avisoEnvio =
+      `⚠️ Guardé todo en HubSpot, pero no salió el mensaje automático ` +
+      `(${err.message}). Escríbele tú a ${telefono}.`;
+  }
+
+  exportacion.cerrar(chatId);
+  await sendTextMessage(
+    chatId,
+    exportacion.terminado(nombreCliente, telefono, avisoEnvio)
+  );
+}
 const extraerFotosRouter = require("./routes/extraerFotos");
 const openaiProxyRouter = require("./routes/openaiProxy");
 
@@ -55,6 +109,8 @@ function firmaWhatsappValida(req) {
 }
 app.use(extraerFotosRouter);
 app.use(openaiProxyRouter);
+// Asistente privado del director, en /asistente (protegido con contraseña).
+app.use(require("./routes/asistente"));
 
 // Mismos identificadores ("slugs") que ya usa la propiedad "Asesor" en
 // HubSpot (ver lib/hubspot.js) — así el link ?asesor=irle, por ejemplo, es
@@ -302,6 +358,80 @@ app.post("/webhooks/whatsapp-cloud", async (req, res) => {
 
     const audioAdjunto = isAudioAttachment(attachment);
 
+    // ------------------------------------------------------------------
+    // CANDADO DE EXPORTACIÓN PENDIENTE
+    // Va ANTES que todo: si este chat dejó una exportación a medias, el
+    // agente no hace ninguna otra cosa aquí — ni responde preguntas, ni
+    // transcribe notas de voz, ni acepta otro zip — hasta que se complete
+    // o se cancele.
+    // ------------------------------------------------------------------
+    const pendienteExport = exportacion.leer(chatId);
+    if (pendienteExport) {
+      const respuesta = (text || "").trim();
+
+      if (exportacion.esCancelacion(respuesta)) {
+        exportacion.cerrar(chatId);
+        await sendTextMessage(
+          chatId,
+          exportacion.cancelado()
+        );
+        return;
+      }
+
+      // Nota de voz o adjunto durante el cuestionario: no se procesa nada.
+      if (!respuesta) {
+        await sendTextMessage(chatId, exportacion.recordatorioBloqueo(pendienteExport));
+        return;
+      }
+
+      try {
+        if (pendienteExport.paso === exportacion.PASO_NOMBRE) {
+          let nombre = null;
+          if (exportacion.esConfirmacion(respuesta) && pendienteExport.nombreDetectado) {
+            nombre = pendienteExport.nombreDetectado;
+          } else if (exportacion.nombreValido(respuesta)) {
+            nombre = respuesta;
+          }
+
+          if (!nombre) {
+            await sendTextMessage(
+              chatId,
+              exportacion.nombreRechazado(pendienteExport)
+            );
+            return;
+          }
+
+          const actualizado = exportacion.actualizar(chatId, {
+            nombreCliente: nombre,
+            paso: exportacion.PASO_TELEFONO,
+          });
+          await sendTextMessage(chatId, exportacion.preguntaTelefono(actualizado));
+          return;
+        }
+
+        if (pendienteExport.paso === exportacion.PASO_TELEFONO) {
+          const tel = exportacion.telefonoValido(respuesta);
+          if (!tel) {
+            await sendTextMessage(
+              chatId,
+              exportacion.telefonoRechazado(pendienteExport)
+            );
+            return;
+          }
+          await cerrarExportacion(chatId, { ...pendienteExport, telefono: tel });
+          return;
+        }
+      } catch (err) {
+        console.error("[exportacion] Error en el cuestionario:", err);
+        await sendTextMessage(
+          chatId,
+          `❌ Algo falló: ${err.message}\n\nInténtalo otra vez o escribe CANCELAR.`
+        );
+        return;
+      }
+      return;
+    }
+
     // --- FILTRO DE CHATS SILENCIADOS ---
     // Va ANTES de descargar adjuntos, transcribir audio, o procesar chat
     // exportado: nada de eso debe llamar a la API de WhatsApp si el chat
@@ -360,28 +490,60 @@ app.post("/webhooks/whatsapp-cloud", async (req, res) => {
         console.log(
           `[chat-exportado] Creado -> contacto ${contacto.id}, negocio ${negocio.id}, proyecto=${datos.proyecto}, asesor=${datos.asesorLabel}, telefono=${datos.telefono}`
         );
-        const confirmacion =
+        const ficha =
           `📦 Archivo: ${datos.filenameOriginal}\n\n` +
-          `✅ Cliente: ${datos.nombreCliente}\n` +
+          `✅ Cliente: ${datos.nombreCliente || 'sin detectar'}\n` +
           (datos.proyecto
             ? `📁 Proyecto: ${datos.proyecto}\n`
             : `⚠️ Proyecto: no detectado, revisar manualmente\n`) +
           (datos.asesorLabel ? `🧑‍💼 Asesor: ${datos.asesorLabel}\n` : '') +
-          `📍 Etapa: Base de datos (no se mueve sola, solo tú la cambias manualmente)\n\n` +
+          `📍 Etapa: Base de datos\n\n` +
           `📎 ${datos.resumenAdjuntos}\n\n` +
-          `💬 Resumen: ${datos.resumenConversacion || 'no se pudo generar.'}\n\n` +
-          (datos.telefono
-            ? `📱 Teléfono detectado: ${datos.telefono}\n¿Es correcto? Responde "sí" o mándame el número correcto y te confirmo con la tarjeta de contacto.`
-            : '⚠️ No se detectó teléfono válido, agrégalo manualmente en HubSpot.');
-        await sendTextMessage(chatId, confirmacion);
+          `💬 Resumen: ${datos.resumenConversacion || 'no se pudo generar.'}`;
 
-        if (datos.telefono) {
-          guardarPendiente(chatId, {
-            contactoId: contacto.id,
-            telefono: datos.telefono,
-            nombreCliente: datos.nombreCliente,
-          });
+        // Datos que la exportación necesita para poder cerrarse.
+        const nombreOk = exportacion.nombreValido(datos.nombreCliente);
+        const telefonoOk = exportacion.telefonoValido(datos.telefono);
+
+        if (nombreOk && telefonoOk) {
+          // Camino feliz: todo detectado, se manda el seguimiento y se acaba.
+        if (!exportacion.yaSaludo(chatId)) {
+          await sendTextMessage(chatId, exportacion.saludoDePresentacion());
+          exportacion.marcarSaludado(chatId);
         }
+          await sendTextMessage(chatId, ficha);
+          await cerrarExportacion(chatId, {
+            contactoId: contacto.id,
+            nombreCliente: datos.nombreCliente,
+            telefono: telefonoOk,
+            resumenConversacion: datos.resumenConversacion,
+          });
+          return;
+        }
+
+        // Falta algo: se abre el cuestionario y se bloquea el chat.
+        const abierta = exportacion.abrir(chatId, {
+          contactoId: contacto.id,
+          negocioId: negocio.id,
+          filenameOriginal: datos.filenameOriginal,
+          nombreDetectado: nombreOk ? datos.nombreCliente : null,
+          nombreCliente: nombreOk ? datos.nombreCliente : null,
+          telefono: telefonoOk || null,
+          resumenConversacion: datos.resumenConversacion,
+          paso: nombreOk ? exportacion.PASO_TELEFONO : exportacion.PASO_NOMBRE,
+        });
+
+        if (!exportacion.yaSaludo(chatId)) {
+          await sendTextMessage(chatId, exportacion.saludoDePresentacion());
+          exportacion.marcarSaludado(chatId);
+        }
+        await sendTextMessage(chatId, ficha);
+        await sendTextMessage(
+          chatId,
+          abierta.paso === exportacion.PASO_NOMBRE
+            ? exportacion.preguntaNombre(abierta)
+            : exportacion.preguntaTelefono(abierta)
+        );
       } catch (err) {
         console.error("[chat-exportado] Error:", err);
         await sendTextMessage(chatId, `❌ No pude procesar el chat exportado: ${err.message}`);
