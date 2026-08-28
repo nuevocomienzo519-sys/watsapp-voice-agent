@@ -76,6 +76,7 @@ async function cerrarExportacion(chatId, pendiente) {
 }
 const extraerFotosRouter = require("./routes/extraerFotos");
 const openaiProxyRouter = require("./routes/openaiProxy");
+const registrarNumeroRouter = require("./routes/registrarNumero");
 
 const app = express();
 app.use(compression());
@@ -109,6 +110,7 @@ function firmaWhatsappValida(req) {
 }
 app.use(extraerFotosRouter);
 app.use(openaiProxyRouter);
+app.use(registrarNumeroRouter);
 // Asistente privado del director, en /asistente (protegido con contraseña).
 app.use(require("./routes/asistente"));
 
@@ -803,6 +805,6 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Servidor escuchando en puerto ${port}`);
   console.log(
-    `URL de webhook a registrar en Meta (WhatsApp > Configuración > Webhook): https://TU-DOMINIO/webhooks/whatsapp-cloud`
+    `URL de webhook a registrar en Meta (WhatsApp > Configuración > Webhook): https://watsapp-voice-agent.onrender.com/webhooks/whatsapp-cloud`
   );
 });
