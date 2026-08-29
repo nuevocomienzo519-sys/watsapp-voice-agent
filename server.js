@@ -77,6 +77,9 @@ async function cerrarExportacion(chatId, pendiente) {
 const extraerFotosRouter = require("./routes/extraerFotos");
 const openaiProxyRouter = require("./routes/openaiProxy");
 const registrarNumeroRouter = require("./routes/registrarNumero");
+const panelConversacionesRouter = require("./routes/panelConversaciones");
+const ajustesNumeroRouter = require("./routes/ajustesNumero");
+const conversaciones = require("./lib/conversaciones");
 
 const app = express();
 app.use(compression());
@@ -111,6 +114,8 @@ function firmaWhatsappValida(req) {
 app.use(extraerFotosRouter);
 app.use(openaiProxyRouter);
 app.use(registrarNumeroRouter);
+app.use(panelConversacionesRouter);
+app.use(ajustesNumeroRouter);
 // Asistente privado del director, en /asistente (protegido con contraseña).
 app.use(require("./routes/asistente"));
 
@@ -310,6 +315,16 @@ function getHistory(chatId) {
   return conversationHistory.get(chatId) || [];
 }
 
+// Historial que sobrevive a los reinicios de Render: intenta Postgres y,
+// si no está configurado o falla, cae al historial en memoria de siempre.
+async function getHistoryPersistente(chatId) {
+  if (conversaciones.habilitado()) {
+    const desdeBD = await conversaciones.obtenerHistorial(chatId);
+    if (desdeBD.length) return desdeBD;
+  }
+  return getHistory(chatId);
+}
+
 function appendHistory(chatId, userText, replyText) {
   const historial = getHistory(chatId);
   historial.push({ role: "user", content: userText });
@@ -448,363 +463,4 @@ app.post("/webhooks/whatsapp-cloud", async (req, res) => {
         // No transcribimos: no hay forma de saber si trae la palabra de
         // activación sin gastar la llamada de descarga/transcripción, así
         // que en chats silenciados las notas de voz se ignoran siempre.
-        console.log(`Chat ${chatId} silenciado: se ignora nota de voz sin transcribir (no consume API).`);
-        return;
-      }
-
-      const tieneActivacion =
-        !!text && text.toLowerCase().includes(PALABRA_ACTIVACION.toLowerCase());
-
-      if (!tieneActivacion) {
-        console.log(`Chat ${chatId} silenciado, mensaje ignorado (sin palabra de activación).`);
-        return;
-      }
-
-      textoLimpio = text.replace(new RegExp(PALABRA_ACTIVACION, "ig"), "").trim();
-
-      // Si mandaron solo la palabra de activación, sin pregunta, le damos
-      // un texto por defecto para que Claude no reciba un mensaje vacío.
-      if (!textoLimpio) {
-        textoLimpio = "Hola, ¿en qué puedo ayudarte?";
-      }
-    }
-    // --- FIN FILTRO DE CHATS SILENCIADOS ---
-
-    // Detección de "contacto exportado": basta con mandar el archivo
-    // .zip/.txt del export de WhatsApp — ya no requiere ninguna palabra
-    // clave en el mensaje. Se crea el contacto+negocio en HubSpot (etapa
-    // "Base de datos") y se corta aquí, sin pasar por Whisper/Claude. El
-    // texto del mensaje (si lo hay) se sigue usando como respaldo para el
-    // teléfono manual (ver extraerTelefono en lib/parseChatExport.js).
-    const esChatExportado =
-      attachment?.filename &&
-      /\.(zip|txt)$/i.test(attachment.filename);
-
-    if (esChatExportado) {
-      try {
-        const archivo = await downloadAttachment(attachment.url);
-        const { contacto, negocio, datos } = await procesarChatExportado(
-          archivo,
-          attachment.filename,
-          textoLimpio,
-          chatId
-        );
-        console.log(
-          `[chat-exportado] Creado -> contacto ${contacto.id}, negocio ${negocio.id}, proyecto=${datos.proyecto}, asesor=${datos.asesorLabel}, telefono=${datos.telefono}`
-        );
-        const ficha =
-          `📦 Archivo: ${datos.filenameOriginal}\n\n` +
-          `✅ Cliente: ${datos.nombreCliente || 'sin detectar'}\n` +
-          (datos.proyecto
-            ? `📁 Proyecto: ${datos.proyecto}\n`
-            : `⚠️ Proyecto: no detectado, revisar manualmente\n`) +
-          (datos.asesorLabel ? `🧑‍💼 Asesor: ${datos.asesorLabel}\n` : '') +
-          `📍 Etapa: Base de datos\n\n` +
-          `📎 ${datos.resumenAdjuntos}\n\n` +
-          `💬 Resumen: ${datos.resumenConversacion || 'no se pudo generar.'}`;
-
-        // Datos que la exportación necesita para poder cerrarse.
-        const nombreOk = exportacion.nombreValido(datos.nombreCliente);
-        const telefonoOk = exportacion.telefonoValido(datos.telefono);
-
-        if (nombreOk && telefonoOk) {
-          // Camino feliz: todo detectado, se manda el seguimiento y se acaba.
-        if (!exportacion.yaSaludo(chatId)) {
-          await sendTextMessage(chatId, exportacion.saludoDePresentacion());
-          exportacion.marcarSaludado(chatId);
-        }
-          await sendTextMessage(chatId, ficha);
-          await cerrarExportacion(chatId, {
-            contactoId: contacto.id,
-            nombreCliente: datos.nombreCliente,
-            telefono: telefonoOk,
-            resumenConversacion: datos.resumenConversacion,
-          });
-          return;
-        }
-
-        // Falta algo: se abre el cuestionario y se bloquea el chat.
-        const abierta = exportacion.abrir(chatId, {
-          contactoId: contacto.id,
-          negocioId: negocio.id,
-          filenameOriginal: datos.filenameOriginal,
-          nombreDetectado: nombreOk ? datos.nombreCliente : null,
-          nombreCliente: nombreOk ? datos.nombreCliente : null,
-          telefono: telefonoOk || null,
-          resumenConversacion: datos.resumenConversacion,
-          paso: nombreOk ? exportacion.PASO_TELEFONO : exportacion.PASO_NOMBRE,
-        });
-
-        if (!exportacion.yaSaludo(chatId)) {
-          await sendTextMessage(chatId, exportacion.saludoDePresentacion());
-          exportacion.marcarSaludado(chatId);
-        }
-        await sendTextMessage(chatId, ficha);
-        await sendTextMessage(
-          chatId,
-          abierta.paso === exportacion.PASO_NOMBRE
-            ? exportacion.preguntaNombre(abierta)
-            : exportacion.preguntaTelefono(abierta)
-        );
-      } catch (err) {
-        console.error("[chat-exportado] Error:", err);
-        await sendTextMessage(chatId, `❌ No pude procesar el chat exportado: ${err.message}`);
-      }
-      return;
-    }
-
-    // --- Confirmación/corrección de teléfono pendiente de un chat exportado ---
-    const pendiente = leerPendiente(chatId);
-    if (pendiente && textoLimpio) {
-      try {
-        const posibleCorreccion = extraerTelefono(textoLimpio);
-        const telefonoFinal = posibleCorreccion || pendiente.telefono;
-
-        if (posibleCorreccion && posibleCorreccion !== pendiente.telefono) {
-          await actualizarTelefonoContacto(pendiente.contactoId, posibleCorreccion);
-        }
-        await enviarTarjetaContacto(chatId, pendiente.nombreCliente, telefonoFinal);
-        await sendTextMessage(
-          chatId,
-          `📇 Tarjeta enviada con ${telefonoFinal}${
-            posibleCorreccion && posibleCorreccion !== pendiente.telefono
-              ? ' (corregido en HubSpot).'
-              : '.'
-          }`
-        );
-      } catch (err) {
-        console.error('[chat-exportado] Error en confirmación de teléfono:', err);
-        await sendTextMessage(chatId, `❌ No pude confirmar/enviar la tarjeta: ${err.message}`);
-      } finally {
-        borrarPendiente(chatId);
-      }
-      return;
-    }
-
-    // El mensaje debe ser nota de voz O texto; si no es ninguno de los
-    // dos (ej. imagen, ubicación, sticker), lo ignoramos por ahora.
-    if (!audioAdjunto && !textoLimpio) {
-      return;
-    }
-
-    const inputMode = audioAdjunto ? "audio" : "text";
-    let userText;
-
-    if (inputMode === "audio") {
-      // 2a. Descargar y transcribir la nota de voz del cliente
-      // (nunca llega aquí si el chat está silenciado: se filtró arriba)
-      const audioIn = await downloadAttachment(attachment.url);
-      userText = await transcribeAudio(audioIn, attachment.filename || "nota.ogg");
-      console.log("Transcripción:", userText);
-    } else {
-      // 2b. Mensaje de texto: se usa directo, sin Whisper.
-      userText = textoLimpio;
-      console.log("Texto recibido:", userText);
-    }
-
-    // 3. Generar la respuesta con Claude (decide también el formato de
-    // salida, y de paso crea en HubSpot la tarea de seguimiento si detecta
-    // una cita agendada o una solicitud de información específica, y
-    // actualiza el nombre del contacto si hace falta).
-    // Le mandamos el historial de esta conversación para que recuerde
-    // el contexto entre mensajes.
-    const { formato, texto: replyText, resumen } = await generateReply(
-      userText,
-      inputMode,
-      { chatId, phone, senderName },
-      getHistory(chatId)
-    );
-    console.log(`Respuesta generada [formato: ${formato}]:`, replyText);
-
-    appendHistory(chatId, userText, replyText);
-
-    // 4. Enviar la respuesta en el formato decidido.
-    // "voz_y_texto": se manda la respuesta completa en audio Y un texto
-    // breve con el resumen (precios/listas), en el mismo turno.
-    if (formato === "voz" || formato === "voz_y_texto") {
-      const audioMp3 = await synthesizeSpeech(replyText);
-      // Convertir a ogg/opus para que WhatsApp lo muestre como nota de
-      // voz (con forma de onda) en vez de un archivo adjunto genérico.
-      const audioOgg = await convertToOggOpus(audioMp3);
-      await sendVoiceMessage(chatId, audioOgg, "respuesta.ogg");
-      console.log(`Respuesta de voz enviada al chat ${chatId}`);
-
-      if (formato === "voz_y_texto" && resumen) {
-        await sendTextMessage(chatId, resumen);
-        console.log(`Resumen de texto enviado al chat ${chatId}`);
-      }
-    } else {
-      await sendTextMessage(chatId, replyText);
-      console.log(`Respuesta de texto enviada al chat ${chatId}`);
-    }
-  } catch (err) {
-    console.error("Error procesando el mensaje:", err);
-  }
-});
-
-// Endpoint temporal para extraer y descargar en .zip las fotos de un día
-// específico en un chat/grupo de TimelinesAI. Ver routes/extraerFotos.js
-// para el detalle — se usa entrando directo desde el navegador a
-// /extraer-fotos?secret=TU_WEBHOOK_SECRET
-
-// Página temporal para conectar el número de WhatsApp a la Cloud API vía
-// Embedded Signup, con la opción de coexistencia (mantener la app normal
-// de WhatsApp Business funcionando a la par). Solo se usa una vez durante
-// la migración; se puede quitar después si se quiere.
-// 
-// Configuración de Facebook: credenciales desde variables de entorno
-// con fallback a valores por defecto para compatibilidad.
-const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID || '1068574982377434';
-const FACEBOOK_CONFIG_ID = process.env.FACEBOOK_CONFIG_ID || '3312158045654863';
-
-app.get("/conectar-whatsapp", (_req, res) => {
-  res.send(`<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <title>Conectar WhatsApp - Nuevo Comienzo</title>
-  <style>
-    body { font-family: sans-serif; max-width: 480px; margin: 60px auto; text-align: center; }
-    button { background: #25D366; color: white; border: none; padding: 14px 28px; font-size: 16px; border-radius: 6px; cursor: pointer; }
-    button:hover { background: #1ebe5b; }
-    #resultado { margin-top: 20px; text-align: left; white-space: pre-wrap; background: #f4f4f4; padding: 12px; border-radius: 6px; font-size: 13px; }
-    .error { color: #d32f2f; }
-  </style>
-</head>
-<body>
-  <h2>Conectar número de WhatsApp</h2>
-  <p>Da clic al botón y sigue el flujo. Cuando te pregunte, elige la opción de conectar tu cuenta existente de WhatsApp Business app.</p>
-  <button onclick="launchWhatsAppSignup()">Conectar WhatsApp</button>
-  <div id="resultado"></div>
-
-  <script>
-    window.fbAsyncInit = function () {
-      try {
-        FB.init({
-          appId: '${FACEBOOK_APP_ID}',
-          cookie: true,
-          xfbml: true,
-          version: 'v22.0',
-        });
-      } catch (err) {
-        document.getElementById('resultado').innerHTML = '<p class="error">⚠️ Error al inicializar Facebook SDK. Por favor, recarga la página.</p>';
-        console.error('Facebook init error:', err);
-      }
-    };
-    
-    (function (d, s, id) {
-      var js, fjs = d.getElementsByTagName(s)[0];
-      if (d.getElementById(id)) return;
-      js = d.createElement(s);
-      js.id = id;
-      js.src = 'https://connect.facebook.net/es_LA/sdk.js';
-      js.onerror = function() {
-        document.getElementById('resultado').innerHTML = '<p class="error">⚠️ No se pudo cargar Facebook SDK. Verifica tu conexión a internet.</p>';
-      };
-      fjs.parentNode.insertBefore(js, fjs);
-    })(document, 'script', 'facebook-jssdk');
-
-    // Captura los datos que WhatsApp manda por postMessage al completar el flujo
-    window.addEventListener('message', (event) => {
-      if (!event.origin.includes('facebook.com')) return;
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'WA_EMBEDDED_SIGNUP') {
-          document.getElementById('resultado').textContent =
-            'Datos recibidos de WhatsApp:\\n' + JSON.stringify(data, null, 2);
-        }
-      } catch (e) {
-        // ignorar mensajes que no son JSON
-      }
-    });
-
-    function launchWhatsAppSignup() {
-      if (typeof FB === 'undefined') {
-        document.getElementById('resultado').innerHTML = '<p class="error">⚠️ Facebook SDK aún no está disponible. Espera un momento e intenta de nuevo.</p>';
-        return;
-      }
-      
-      FB.login(
-        function (response) {
-          if (response.status === 'connected' && response.authResponse) {
-            const code = response.authResponse.code;
-            document.getElementById('resultado').textContent =
-              'Código de autorización recibido:\\n' + code +
-              '\\n\\nManda captura de esto.';
-          } else {
-            document.getElementById('resultado').textContent = 'Cancelaste el inicio de sesión o no autorizaste todo.';
-          }
-        },
-        {
-          config_id: '${FACEBOOK_CONFIG_ID}',
-          response_type: 'code',
-          override_default_response_type: true,
-          extras: {
-            sessionInfoVersion: 3,
-            featureType: 'whatsapp_business_app_onboarding',
-          },
-        }
-      );
-    }
-  </script>
-</body>
-</html>`);
-});
-
-// ---------------------------------------------------------------------------
-// TEMPORAL: diagnóstico del token de la Cloud API. Usa /debug_token de Meta
-// para confirmar si WHATSAPP_CLOUD_TOKEN es válido, sin exponer el token en
-// ningún momento (solo se ven metadatos: válido/inválido, permisos, fecha
-// de expiración). Se abre desde el navegador:
-//   /diagnostico-token?secret=TU_WEBHOOK_SECRET
-// Se puede borrar junto con /registrar-numero una vez resuelto el 401.
-// ---------------------------------------------------------------------------
-app.get("/diagnostico-token", async (req, res) => {
-  if (req.query.secret !== process.env.WEBHOOK_SECRET) {
-    return res.status(403).json({ error: "no autorizado" });
-  }
-
-  const tokenAInspeccionar = (process.env.WHATSAPP_CLOUD_TOKEN || "").trim();
-  const tokenParaConsultar = (process.env.META_TOKEN || tokenAInspeccionar).trim();
-
-  if (!tokenAInspeccionar) {
-    return res.status(500).json({
-      error: "WHATSAPP_CLOUD_TOKEN no está definido en las variables de entorno de Render",
-    });
-  }
-
-  try {
-    const url = `https://graph.facebook.com/debug_token?input_token=${encodeURIComponent(
-      tokenAInspeccionar
-    )}&access_token=${encodeURIComponent(tokenParaConsultar)}`;
-    const r = await fetch(url);
-    const data = await r.json();
-    const info = data.data || {};
-    res.status(r.status).json({
-      variable_inspeccionada: "WHATSAPP_CLOUD_TOKEN",
-      longitud_del_token: tokenAInspeccionar.length,
-      es_valido: info.is_valid ?? null,
-      tipo: info.type ?? null,
-      app_id: info.app_id ?? null,
-      permisos: info.scopes ?? null,
-      expira: info.expires_at
-        ? new Date(info.expires_at * 1000).toISOString()
-        : info.expires_at === 0
-        ? "nunca"
-        : null,
-      error_de_meta: data.error || info.error || null,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get("/health", (_req, res) => res.send("ok"));
-
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Servidor escuchando en puerto ${port}`);
-  console.log(
-    `URL de webhook a registrar en Meta (WhatsApp > Configuración > Webhook): https://watsapp-voice-agent.onrender.com/webhooks/whatsapp-cloud`
-  );
-});
+        console.log(`Chat ${chatId} silenciado: se ignora nota de voz sin transcribir (
