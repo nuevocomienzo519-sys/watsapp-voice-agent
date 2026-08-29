@@ -27,6 +27,9 @@ const { actualizarNombreContacto } = require("./lib/hubspot");
 // Plantilla aprobada en Meta para retomar el contacto con el cliente.
 const PLANTILLA_SEGUIMIENTO = process.env.PLANTILLA_SEGUIMIENTO || "seguimiento_contacto";
 const PLANTILLA_IDIOMA = process.env.PLANTILLA_IDIOMA || "es_MX";
+// Modo de prueba: con PLANTILLA_SIN_PARAMETROS=1 la plantilla se envía sin
+// variables. Sirve para probar plantillas como hello_world, que no las tiene.
+const PLANTILLA_SIN_PARAMETROS = process.env.PLANTILLA_SIN_PARAMETROS === "1";
 
 /**
  * Cierra una exportación: guarda nombre y teléfono en HubSpot, le manda al
@@ -58,7 +61,7 @@ async function cerrarExportacion(chatId, pendiente) {
       telefono.replace(/^\+/, ""),
       PLANTILLA_SEGUIMIENTO,
       PLANTILLA_IDIOMA,
-      [primerNombre, linea.slice(0, 250)]
+      PLANTILLA_SIN_PARAMETROS ? [] : [primerNombre, linea.slice(0, 250)]
     );
     avisoEnvio = `📤 Mensaje de seguimiento enviado a ${telefono}.`;
   } catch (err) {
