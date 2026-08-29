@@ -76,6 +76,10 @@ async function cerrarExportacion(chatId, pendiente) {
 }
 const extraerFotosRouter = require("./routes/extraerFotos");
 const openaiProxyRouter = require("./routes/openaiProxy");
+const registrarNumeroRouter = require("./routes/registrarNumero");
+const panelConversacionesRouter = require("./routes/panelConversaciones");
+const ajustesNumeroRouter = require("./routes/ajustesNumero");
+const conversaciones = require("./lib/conversaciones");
 
 const app = express();
 app.use(compression());
@@ -109,6 +113,9 @@ function firmaWhatsappValida(req) {
 }
 app.use(extraerFotosRouter);
 app.use(openaiProxyRouter);
+app.use(registrarNumeroRouter);
+app.use(panelConversacionesRouter);
+app.use(ajustesNumeroRouter);
 // Asistente privado del director, en /asistente (protegido con contraseña).
 app.use(require("./routes/asistente"));
 
@@ -306,6 +313,16 @@ const MAX_HISTORY_MESSAGES = 20; // ~10 turnos (usuario + asistente)
 
 function getHistory(chatId) {
   return conversationHistory.get(chatId) || [];
+}
+
+// Historial que sobrevive a los reinicios de Render: intenta Postgres y,
+// si no está configurado o falla, cae al historial en memoria de siempre.
+async function getHistoryPersistente(chatId) {
+  if (conversaciones.habilitado()) {
+    const desdeBD = await conversaciones.obtenerHistorial(chatId);
+    if (desdeBD.length) return desdeBD;
+  }
+  return getHistory(chatId);
 }
 
 function appendHistory(chatId, userText, replyText) {
@@ -610,11 +627,18 @@ app.post("/webhooks/whatsapp-cloud", async (req, res) => {
       userText,
       inputMode,
       { chatId, phone, senderName },
-      getHistory(chatId)
+      await getHistoryPersistente(chatId)
     );
     console.log(`Respuesta generada [formato: ${formato}]:`, replyText);
 
     appendHistory(chatId, userText, replyText);
+    await conversaciones.guardarTurno({
+      chatId,
+      telefono: phone,
+      nombre: senderName,
+      textoCliente: userText,
+      textoAgente: replyText,
+    });
 
     // 4. Enviar la respuesta en el formato decidido.
     // "voz_y_texto": se manda la respuesta completa en audio Y un texto
@@ -802,7 +826,8 @@ app.get("/health", (_req, res) => res.send("ok"));
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Servidor escuchando en puerto ${port}`);
+  conversaciones.inicializar();
   console.log(
-    `URL de webhook a registrar en Meta (WhatsApp > Configuración > Webhook): https://TU-DOMINIO/webhooks/whatsapp-cloud`
+    `URL de webhook a registrar en Meta (WhatsApp > Configuración > Webhook): https://watsapp-voice-agent.onrender.com/webhooks/whatsapp-cloud`
   );
 });
