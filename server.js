@@ -61,7 +61,7 @@ async function cerrarExportacion(chatId, pendiente) {
       telefono.replace(/^\+/, ""),
       PLANTILLA_SEGUIMIENTO,
       PLANTILLA_IDIOMA,
-      PLANTILLA_SIN_PARAMETROS ? [] : [primerNombre, linea.slice(0, 250)]
+      PLANTILLA_SIN_PARAMETROS ? [] : [primerNombre]
     );
     avisoEnvio = `📤 Mensaje de seguimiento enviado a ${telefono}.`;
   } catch (err) {
