@@ -71,13 +71,7 @@ async function cerrarExportacion(chatId, pendiente) {
       `⚠️ Guardé todo en HubSpot, pero no salió el mensaje automático ` +
       `(${err.message}). Escríbele tú a ${telefono}.`;
   }
-    avisoEnvio = `📤 Mensaje de seguimiento enviado a ${telefono}.`;
-  } catch (err) {
-    console.error("[exportacion] Falló el envío de la plantilla:", err.message);
-    avisoEnvio =
-      `⚠️ Guardé todo en HubSpot, pero no salió el mensaje automático ` +
-      `(${err.message}). Escríbele tú a ${telefono}.`;
-  }
+  
 
   exportacion.cerrar(chatId);
   await sendTextMessage(
