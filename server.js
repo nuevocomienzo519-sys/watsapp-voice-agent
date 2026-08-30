@@ -52,7 +52,8 @@ async function cerrarExportacion(chatId, pendiente) {
   }
 
     let avisoEnvio;
-  try {
+
+    try {
     const primerNombre = String(nombreCliente).trim().split(/\s+/)[0];
     const linea =
       resumenConversacion ||
