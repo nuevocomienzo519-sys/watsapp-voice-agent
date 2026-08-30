@@ -51,7 +51,7 @@ async function cerrarExportacion(chatId, pendiente) {
     await actualizarTelefonoContacto(contactoId, telefono);
   }
 
-  let avisoEnvio;
+    let avisoEnvio;
   try {
     const primerNombre = String(nombreCliente).trim().split(/\s+/)[0];
     const linea =
@@ -61,8 +61,15 @@ async function cerrarExportacion(chatId, pendiente) {
       telefono.replace(/^\+/, ""),
       PLANTILLA_SEGUIMIENTO,
       PLANTILLA_IDIOMA,
-      PLANTILLA_SIN_PARAMETROS ? [] : [primerNombre]
+      PLANTILLA_SIN_PARAMETROS ? [] : [primerNombre, linea.slice(0, 250)]
     );
+    avisoEnvio = `📤 Mensaje de seguimiento enviado a ${telefono}.`;
+  } catch (err) {
+    console.error("[exportacion] Falló el envío de la plantilla:", err.message);
+    avisoEnvio =
+      `⚠️ Guardé todo en HubSpot, pero no salió el mensaje automático ` +
+      `(${err.message}). Escríbele tú a ${telefono}.`;
+  }
     avisoEnvio = `📤 Mensaje de seguimiento enviado a ${telefono}.`;
   } catch (err) {
     console.error("[exportacion] Falló el envío de la plantilla:", err.message);
