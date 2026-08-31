@@ -14,7 +14,7 @@
 const express = require("express");
 const router = express.Router();
 const conversaciones = require("../lib/conversaciones");
-const { sendTextMessage } = require("../lib/whatsappCloudClient");
+const { sendTextMessage, sendImageMessage } = require("../lib/whatsappCloudClient");
 const { generarSugerencia } = require("../lib/llm");
 
 function claveValida(req) {
@@ -72,6 +72,37 @@ router.post("/api/conversaciones/:chatId/responder", async (req, res) => {
     });
   } catch (err) {
     console.error("[panel] Se envió el mensaje pero no se pudo guardar en el historial:", err.message);
+  }
+
+  res.json({ ok: true });
+});
+
+// --- API: enviar una foto de la galería --------------------------------
+// Manda una imagen (por URL pública de la galería) al chat, sin que nadie
+// tenga que descargarla ni volverla a subir a mano.
+router.post("/api/conversaciones/:chatId/enviar-foto", async (req, res) => {
+  if (!claveValida(req)) return res.status(403).json({ error: "Clave incorrecta" });
+  const chatId = req.params.chatId;
+  const url = String(req.body?.url || "").trim();
+  if (!url) return res.status(400).json({ ok: false, error: "Falta la URL de la foto." });
+
+  try {
+    await sendImageMessage(chatId, url);
+  } catch (err) {
+    return res.status(502).json({ ok: false, error: err.message });
+  }
+
+  try {
+    await conversaciones.guardarMensajeSaliente({
+      chatId,
+      telefono: chatId,
+      texto: null,
+      adjuntoTipo: "image/jpeg",
+      adjuntoMediaId: url,
+      adjuntoNombre: "foto-galeria.jpg",
+    });
+  } catch (err) {
+    console.error("[panel] No se pudo guardar la foto enviada en el historial:", err.message);
   }
 
   res.json({ ok: true });
