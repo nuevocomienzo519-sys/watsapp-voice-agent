@@ -689,11 +689,12 @@ app.post("/conectar-whatsapp", async (req, res) => {
     }
 
     // 1. Intercambiar el "code" por un token de acceso
-    const tokenResponse = await fetch(
+       const tokenResponse = await fetch(
       `https://graph.facebook.com/v22.0/oauth/access_token?` +
         new URLSearchParams({
           client_id: process.env.FACEBOOK_APP_ID || "1068574982377434",
           client_secret: process.env.META_APP_SECRET,
+          redirect_uri: "https://watsapp-voice-agent.onrender.com/conectar-whatsapp",
           code: code,
         })
     );
