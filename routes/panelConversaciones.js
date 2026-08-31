@@ -15,6 +15,7 @@ const express = require("express");
 const router = express.Router();
 const conversaciones = require("../lib/conversaciones");
 const { sendTextMessage } = require("../lib/whatsappCloudClient");
+const { generarSugerencia } = require("../lib/llm");
 
 function claveValida(req) {
   const esperada = process.env.PANEL_CLAVE;
@@ -76,6 +77,23 @@ router.post("/api/conversaciones/:chatId/responder", async (req, res) => {
   res.json({ ok: true });
 });
 
+// --- API: sugerencia de respuesta con IA ------------------------------------
+// Lee el historial real del chat y le pide a Claude una propuesta de
+// respuesta. Solo devuelve texto — nunca lo manda. El asesor decide.
+router.post("/api/conversaciones/:chatId/sugerencia", async (req, res) => {
+  if (!claveValida(req)) return res.status(403).json({ error: "Clave incorrecta" });
+  try {
+    const mensajes = await conversaciones.obtenerConversacion(req.params.chatId);
+    const history = mensajes
+      .filter((m) => m.texto)
+      .map((m) => ({ role: m.rol === "assistant" ? "assistant" : "user", content: m.texto }));
+    const sugerencia = await generarSugerencia(history);
+    res.json({ ok: true, sugerencia });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // --- Página HTML -----------------------------------------------------------
 router.get("/conversaciones", (_req, res) => {
   res.type("html").send(`<!doctype html>
@@ -122,6 +140,23 @@ router.get("/conversaciones", (_req, res) => {
   .responder button { background:var(--verde); color:#fff; border:0; border-radius:50%;
                        width:44px; height:44px; flex-shrink:0; font-size:18px; cursor:pointer; }
   .responder button:disabled { opacity:.5; }
+  .aviso { text-align:center; font-size:13px; padding:6px; }
+  .aviso.ok { color:#128C7E; }
+  .aviso.error { color:#c00; }
+  .sugerencia { position:fixed; left:0; right:0; bottom:64px; background:#fffaf0;
+                border-top:1px solid #f0dfb0; display:none; }
+  .sugerencia.activo { display:block; }
+  .sugerencia-wrap { max-width:820px; margin:0 auto; padding:10px 12px; }
+  .sugerencia-cabecera { display:flex; justify-content:space-between; align-items:center;
+                          font-size:13px; font-weight:600; color:#a67c00; }
+  .sugerencia-cabecera button { background:#a67c00; color:#fff; border:0; border-radius:6px;
+                                 padding:5px 10px; font-size:12px; cursor:pointer; }
+  .sugerencia-cabecera button:disabled { opacity:.5; }
+  .sugerencia-texto { font-size:14px; color:#333; margin-top:6px; white-space:pre-wrap;
+                       max-height:120px; overflow-y:auto; }
+  .sugerencia-acciones { margin-top:6px; }
+  .sugerencia-acciones button { background:var(--verde); color:#fff; border:0; border-radius:6px;
+                                 padding:6px 12px; font-size:13px; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -137,6 +172,18 @@ router.get("/conversaciones", (_req, res) => {
     <div id="errorLogin" style="color:#c00;font-size:14px;margin-top:8px"></div>
   </div>
   <div id="contenido"></div>
+</div>
+<div class="sugerencia" id="sugerencia">
+  <div class="sugerencia-wrap">
+    <div class="sugerencia-cabecera">
+      <span>💡 Sugerencia con IA</span>
+      <button id="btnGenerarSugerencia">Generar</button>
+    </div>
+    <div id="sugerenciaTexto" class="sugerencia-texto"></div>
+    <div id="sugerenciaAcciones" class="sugerencia-acciones" style="display:none">
+      <button id="btnUsarSugerencia">Usar esta respuesta</button>
+    </div>
+  </div>
 </div>
 <div class="responder" id="responder">
   <div class="responder-wrap">
@@ -155,6 +202,11 @@ router.get("/conversaciones", (_req, res) => {
   var barraResponder = document.getElementById("responder");
   var textoResponder = document.getElementById("textoResponder");
   var btnEnviar = document.getElementById("btnEnviar");
+  var cajaSugerencia = document.getElementById("sugerencia");
+  var btnGenerarSugerencia = document.getElementById("btnGenerarSugerencia");
+  var sugerenciaTexto = document.getElementById("sugerenciaTexto");
+  var sugerenciaAcciones = document.getElementById("sugerenciaAcciones");
+  var btnUsarSugerencia = document.getElementById("btnUsarSugerencia");
   var chatActualId = null;
 
   function fecha(iso){
@@ -177,6 +229,9 @@ router.get("/conversaciones", (_req, res) => {
   async function verLista(){
     chatActualId = null;
     barraResponder.classList.remove("activo");
+    cajaSugerencia.classList.remove("activo");
+    sugerenciaTexto.textContent = "";
+    sugerenciaAcciones.style.display = "none";
     btnVolver.style.display = "none";
     titulo.textContent = "Conversaciones";
     contenido.innerHTML = '<div class="cargando">Cargando…</div>';
@@ -207,6 +262,9 @@ router.get("/conversaciones", (_req, res) => {
     titulo.textContent = nombre || "Conversación";
     contenido.innerHTML = '<div class="cargando">Cargando…</div>';
     barraResponder.classList.add("activo");
+    cajaSugerencia.classList.add("activo");
+    sugerenciaTexto.textContent = "";
+    sugerenciaAcciones.style.display = "none";
     try {
       var d = await pedir("/api/conversaciones/" + encodeURIComponent(id));
       contenido.innerHTML = (d.mensajes||[]).map(function(m){
@@ -244,6 +302,35 @@ router.get("/conversaciones", (_req, res) => {
     }
   }
 
+  async function generarSugerenciaIA(){
+    if (!chatActualId) return;
+    btnGenerarSugerencia.disabled = true;
+    sugerenciaTexto.textContent = "Pensando…";
+    sugerenciaAcciones.style.display = "none";
+    try {
+      var r = await fetch("/api/conversaciones/" + encodeURIComponent(chatActualId) + "/sugerencia?clave=" + encodeURIComponent(clave), {
+        method: "POST"
+      });
+      var d = await r.json();
+      if (r.status === 403) { manejarError(new Error("403")); return; }
+      if (!d.ok) {
+        sugerenciaTexto.textContent = "No se pudo generar: " + (d.error || "error desconocido");
+        return;
+      }
+      sugerenciaTexto.textContent = d.sugerencia || "(sin respuesta)";
+      sugerenciaAcciones.style.display = "block";
+    } catch (e) {
+      sugerenciaTexto.textContent = "No se pudo generar: " + e.message;
+    } finally {
+      btnGenerarSugerencia.disabled = false;
+    }
+  }
+
+  function usarSugerencia(){
+    textoResponder.value = sugerenciaTexto.textContent;
+    textoResponder.focus();
+  }
+
   function manejarError(e){
     if (String(e.message) === "403") {
       sessionStorage.removeItem("panelClave");
@@ -259,6 +346,8 @@ router.get("/conversaciones", (_req, res) => {
 
   btnVolver.onclick = verLista;
   btnEnviar.onclick = enviarRespuesta;
+  btnGenerarSugerencia.onclick = generarSugerenciaIA;
+  btnUsarSugerencia.onclick = usarSugerencia;
   textoResponder.addEventListener("keydown", function(ev){
     if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); enviarRespuesta(); }
   });
