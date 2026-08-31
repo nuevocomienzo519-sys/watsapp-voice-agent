@@ -188,12 +188,28 @@ router.get("/conversaciones", (_req, res) => {
   .sugerencia-acciones { margin-top:6px; }
   .sugerencia-acciones button { background:var(--verde); color:#fff; border:0; border-radius:6px;
                                  padding:6px 12px; font-size:13px; cursor:pointer; }
+  .fotos-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:50; }
+  .fotos-modal.activo { display:flex; align-items:flex-end; justify-content:center; }
+  .fotos-modal-inner { background:#fff; width:100%; max-width:820px; max-height:80vh;
+                        border-radius:14px 14px 0 0; display:flex; flex-direction:column; overflow:hidden; }
+  .fotos-modal-header { display:flex; justify-content:space-between; align-items:center;
+                         padding:14px 16px; border-bottom:1px solid #eee; font-weight:600; }
+  .fotos-modal-header button { background:none; border:0; font-size:18px; cursor:pointer; color:#666; }
+  .fotos-lista { overflow-y:auto; padding:12px 16px 24px; }
+  .fotos-proyecto-titulo { font-weight:700; font-size:15px; margin:14px 0 6px; color:#1F4E78; }
+  .fotos-modelo-titulo { font-weight:600; font-size:13px; margin:10px 0 6px; color:#555; }
+  .fotos-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:6px; }
+  .fotos-grid img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; cursor:pointer;
+                     border:2px solid transparent; }
+  .fotos-grid img:active { border-color:var(--verde); opacity:.8; }
 </style>
 </head>
 <body>
 <header>
   <button id="volver" style="display:none">←</button>
   <span id="titulo">Conversaciones</span>
+  <a href="/galeria/" target="_blank" id="linkCatalogo" style="margin-left:auto;color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,.2);padding:6px 10px;border-radius:6px">📁 Catálogo</a>
+  <button id="btnFotos" style="display:none">📷 Fotos</button>
 </header>
 <div class="wrap" id="app">
   <div class="login" id="login">
@@ -214,6 +230,15 @@ router.get("/conversaciones", (_req, res) => {
     <div id="sugerenciaAcciones" class="sugerencia-acciones" style="display:none">
       <button id="btnUsarSugerencia">Usar esta respuesta</button>
     </div>
+  </div>
+</div>
+<div class="fotos-modal" id="fotosModal">
+  <div class="fotos-modal-inner">
+    <div class="fotos-modal-header">
+      <span>Enviar foto de la galería</span>
+      <button id="cerrarFotos">✕</button>
+    </div>
+    <div id="fotosLista" class="fotos-lista"><div class="cargando">Cargando…</div></div>
   </div>
 </div>
 <div class="responder" id="responder">
@@ -238,6 +263,11 @@ router.get("/conversaciones", (_req, res) => {
   var sugerenciaTexto = document.getElementById("sugerenciaTexto");
   var sugerenciaAcciones = document.getElementById("sugerenciaAcciones");
   var btnUsarSugerencia = document.getElementById("btnUsarSugerencia");
+  var btnFotos = document.getElementById("btnFotos");
+  var fotosModal = document.getElementById("fotosModal");
+  var fotosLista = document.getElementById("fotosLista");
+  var cerrarFotosBtn = document.getElementById("cerrarFotos");
+  var manifestCache = null;
   var chatActualId = null;
 
   function fecha(iso){
@@ -264,6 +294,7 @@ router.get("/conversaciones", (_req, res) => {
     sugerenciaTexto.textContent = "";
     sugerenciaAcciones.style.display = "none";
     btnVolver.style.display = "none";
+    btnFotos.style.display = "none";
     titulo.textContent = "Conversaciones";
     contenido.innerHTML = '<div class="cargando">Cargando…</div>';
     try {
@@ -296,6 +327,7 @@ router.get("/conversaciones", (_req, res) => {
     cajaSugerencia.classList.add("activo");
     sugerenciaTexto.textContent = "";
     sugerenciaAcciones.style.display = "none";
+    btnFotos.style.display = "inline-block";
     try {
       var d = await pedir("/api/conversaciones/" + encodeURIComponent(id));
       contenido.innerHTML = (d.mensajes||[]).map(function(m){
@@ -363,6 +395,61 @@ router.get("/conversaciones", (_req, res) => {
     textoResponder.focus();
   }
 
+  async function abrirFotos(){
+    fotosModal.classList.add("activo");
+    if (manifestCache) { pintarFotos(manifestCache); return; }
+    fotosLista.innerHTML = '<div class="cargando">Cargando…</div>';
+    try {
+      var r = await fetch("/galeria/manifest.json");
+      manifestCache = await r.json();
+      pintarFotos(manifestCache);
+    } catch (e) {
+      fotosLista.innerHTML = '<div class="vacio">No se pudo cargar la galería.</div>';
+    }
+  }
+
+  function pintarFotos(manifest){
+    var html = "";
+    (manifest.proyectos || []).forEach(function(proy){
+      html += '<div class="fotos-proyecto-titulo">' + esc(proy.nombre) + '</div>';
+      (proy.modelos || []).forEach(function(modelo){
+        var fotos = (modelo.fotos || []).slice(0, 6);
+        if (!fotos.length) return;
+        html += '<div class="fotos-modelo-titulo">' + esc(modelo.nombre) +
+                (modelo.preventa ? ' (Preventa)' : '') + '</div>';
+        html += '<div class="fotos-grid">';
+        fotos.forEach(function(foto){
+          var url = foto.url || foto;
+          html += '<img src="' + esc(url) + '" data-url="' + esc(url) + '">';
+        });
+        html += '</div>';
+      });
+    });
+    fotosLista.innerHTML = html || '<div class="vacio">No hay fotos en la galería.</div>';
+    Array.prototype.forEach.call(fotosLista.querySelectorAll("img"), function(img){
+      img.onclick = function(){ enviarFotoGaleria(img.getAttribute("data-url")); };
+    });
+  }
+
+  async function enviarFotoGaleria(url){
+    if (!chatActualId || !url) return;
+    try {
+      var r = await fetch("/api/conversaciones/" + encodeURIComponent(chatActualId) + "/enviar-foto?clave=" + encodeURIComponent(clave), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url })
+      });
+      var d = await r.json();
+      if (r.status === 403) { manejarError(new Error("403")); return; }
+      if (!d.ok) { alert("No se pudo enviar la foto: " + (d.error || "error desconocido")); return; }
+      fotosModal.classList.remove("activo");
+      var idActual = chatActualId, nombreActual = titulo.textContent;
+      await verChat(idActual, nombreActual);
+    } catch (e) {
+      alert("No se pudo enviar la foto: " + e.message);
+    }
+  }
+
   function manejarError(e){
     if (String(e.message) === "403") {
       sessionStorage.removeItem("panelClave");
@@ -380,6 +467,8 @@ router.get("/conversaciones", (_req, res) => {
   btnEnviar.onclick = enviarRespuesta;
   btnGenerarSugerencia.onclick = generarSugerenciaIA;
   btnUsarSugerencia.onclick = usarSugerencia;
+  btnFotos.onclick = abrirFotos;
+  cerrarFotosBtn.onclick = function(){ fotosModal.classList.remove("activo"); };
   textoResponder.addEventListener("keydown", function(ev){
     if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); enviarRespuesta(); }
   });
