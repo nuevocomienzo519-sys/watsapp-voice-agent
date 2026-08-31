@@ -1419,8 +1419,25 @@ app.post(
 
 
 // ============================================================
-// EMBEDDED SIGNUP
-// INTERCAMBIO CODE -> TOKEN
+```js
+// ============================================================
+// WHATSAPP EMBEDDED SIGNUP
+// FACEBOOK LOGIN FOR BUSINESS
+// ============================================================
+
+const FACEBOOK_APP_ID =
+  process.env.FACEBOOK_APP_ID || "1068574982377434";
+
+const FACEBOOK_CONFIG_ID =
+  process.env.FACEBOOK_CONFIG_ID || "1048508727955206";
+
+const FACEBOOK_REDIRECT_URI =
+  process.env.FACEBOOK_REDIRECT_URI ||
+  "https://watsapp-voice-agent.onrender.com/conectar-whatsapp";
+
+
+// ============================================================
+// INTERCAMBIO CODE -> ACCESS TOKEN
 // ============================================================
 
 app.post(
@@ -1429,35 +1446,41 @@ app.post(
 
     try {
 
-      const { code } =
-        req.body;
+      const code =
+        String(req.body?.code || "").trim();
 
       if (!code) {
 
         return res
           .status(400)
           .json({
+            ok: false,
             error:
               "Falta el código de autorización.",
           });
       }
 
+
       console.log(
-        "[conectar-whatsapp] Iniciando intercambio del code."
+        "=========================================="
       );
 
       console.log(
-        "[conectar-whatsapp] App ID:",
+        "[WHATSAPP SIGNUP] Iniciando intercambio"
+      );
+
+      console.log(
+        "[WHATSAPP SIGNUP] App ID:",
         FACEBOOK_APP_ID
       );
 
       console.log(
-        "[conectar-whatsapp] Config ID:",
+        "[WHATSAPP SIGNUP] Config ID:",
         FACEBOOK_CONFIG_ID
       );
 
       console.log(
-        "[conectar-whatsapp] Redirect URI:",
+        "[WHATSAPP SIGNUP] Redirect URI:",
         FACEBOOK_REDIRECT_URI
       );
 
@@ -1466,89 +1489,173 @@ app.post(
       // 1. INTERCAMBIAR CODE POR TOKEN
       // ======================================================
 
+      const parametros = new URLSearchParams();
+
+      parametros.append(
+        "client_id",
+        FACEBOOK_APP_ID
+      );
+
+      parametros.append(
+        "client_secret",
+        process.env.META_APP_SECRET
+      );
+
+      parametros.append(
+        "redirect_uri",
+        FACEBOOK_REDIRECT_URI
+      );
+
+      parametros.append(
+        "code",
+        code
+      );
+
+
       const tokenResponse =
         await fetch(
-          "https://graph.facebook.com/v22.0/oauth/access_token?" +
-          new URLSearchParams({
-            client_id:
-              FACEBOOK_APP_ID,
+          "https://graph.facebook.com/v22.0/oauth/access_token",
+          {
+            method: "POST",
 
-            client_secret:
-              process.env.META_APP_SECRET,
+            headers: {
+              "Content-Type":
+                "application/x-www-form-urlencoded",
+            },
 
-            redirect_uri:
-              FACEBOOK_REDIRECT_URI,
-
-            code:
-              code,
-          })
+            body:
+              parametros.toString(),
+          }
         );
+
 
       const tokenData =
         await tokenResponse.json();
 
-      if (
-        !tokenResponse.ok ||
-        !tokenData.access_token
-      ) {
-
-        console.error(
-          "[conectar-whatsapp] Error obteniendo token:",
-          tokenData
-        );
-
-        return res
-          .status(400)
-          .json({
-            error:
-              "No se pudo obtener el token.",
-
-            detalle:
-              tokenData,
-          });
-      }
-
-      const accessToken =
-        tokenData.access_token;
 
       console.log(
-        "[conectar-whatsapp] Token obtenido correctamente."
-      );
-
-
-      // ======================================================
-      // 2. OBTENER NEGOCIOS
-      // ======================================================
-
-      const wabaResponse =
-        await fetch(
-          `https://graph.facebook.com/v22.0/me/businesses?access_token=${encodeURIComponent(
-            accessToken
-          )}`
-        );
-
-      const wabaData =
-        await wabaResponse.json();
-
-      console.log(
-        "[conectar-whatsapp] Negocios encontrados:",
+        "[WHATSAPP SIGNUP] Respuesta token:",
         JSON.stringify(
-          wabaData,
+          tokenData,
           null,
           2
         )
       );
 
 
+      if (
+        !tokenResponse.ok ||
+        !tokenData.access_token
+      ) {
+
+        return res
+          .status(400)
+          .json({
+            ok: false,
+
+            error:
+              "No se pudo obtener el token.",
+
+            detalle:
+              tokenData,
+
+            diagnostico: {
+              app_id:
+                FACEBOOK_APP_ID,
+
+              config_id:
+                FACEBOOK_CONFIG_ID,
+
+              redirect_uri:
+                FACEBOOK_REDIRECT_URI,
+
+              mensaje:
+                "El redirect_uri utilizado para intercambiar el código debe ser exactamente el mismo utilizado durante la autorización de Facebook.",
+            },
+          });
+      }
+
+
+      const accessToken =
+        tokenData.access_token;
+
+
+      console.log(
+        "[WHATSAPP SIGNUP] Token obtenido correctamente."
+      );
+
+
       // ======================================================
-      // 3. RESPUESTA
+      // 2. CONSULTAR INFORMACIÓN DEL TOKEN
+      // ======================================================
+
+      let debugToken = null;
+
+      try {
+
+        const debugResponse =
+          await fetch(
+            "https://graph.facebook.com/debug_token?" +
+            new URLSearchParams({
+              input_token:
+                accessToken,
+
+              access_token:
+                accessToken,
+            })
+          );
+
+        debugToken =
+          await debugResponse.json();
+
+      } catch (err) {
+
+        console.warn(
+          "[WHATSAPP SIGNUP] No se pudo depurar el token:",
+          err.message
+        );
+      }
+
+
+      // ======================================================
+      // 3. OBTENER NEGOCIOS DEL USUARIO
+      // ======================================================
+
+      let negocios = null;
+
+      try {
+
+        const negociosResponse =
+          await fetch(
+            "https://graph.facebook.com/v22.0/me/businesses?" +
+            new URLSearchParams({
+              access_token:
+                accessToken,
+            })
+          );
+
+        negocios =
+          await negociosResponse.json();
+
+      } catch (err) {
+
+        console.warn(
+          "[WHATSAPP SIGNUP] No se pudieron obtener negocios:",
+          err.message
+        );
+      }
+
+
+      // ======================================================
+      // 4. RESPUESTA
       // ======================================================
 
       return res.json({
+
         ok: true,
 
         mensaje:
-          "Token obtenido correctamente.",
+          "Autorización de WhatsApp obtenida correctamente.",
 
         config_id:
           FACEBOOK_CONFIG_ID,
@@ -1556,25 +1663,40 @@ app.post(
         redirect_uri:
           FACEBOOK_REDIRECT_URI,
 
+        token_type:
+          tokenData.token_type || null,
+
+        expires_in:
+          tokenData.expires_in || null,
+
+        debug_token:
+          debugToken,
+
         negocios:
-          wabaData,
+          negocios,
+
       });
+
 
     } catch (error) {
 
       console.error(
-        "[conectar-whatsapp] Error:",
+        "[WHATSAPP SIGNUP] Error interno:",
         error
       );
 
       return res
         .status(500)
         .json({
+
+          ok: false,
+
           error:
             "Error interno.",
 
           detalle:
             error.message,
+
         });
     }
   }
@@ -1597,6 +1719,11 @@ app.get(
 
 <meta charset="utf-8" />
 
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1"
+/>
+
 <title>
 Conectar WhatsApp - Nuevo Comienzo
 </title>
@@ -1604,9 +1731,10 @@ Conectar WhatsApp - Nuevo Comienzo
 <style>
 
 body {
-  font-family: sans-serif;
-  max-width: 480px;
+  font-family: Arial, sans-serif;
+  max-width: 520px;
   margin: 60px auto;
+  padding: 20px;
   text-align: center;
 }
 
@@ -1614,9 +1742,9 @@ button {
   background: #25D366;
   color: white;
   border: none;
-  padding: 14px 28px;
-  font-size: 16px;
-  border-radius: 6px;
+  padding: 15px 30px;
+  font-size: 17px;
+  border-radius: 8px;
   cursor: pointer;
 }
 
@@ -1624,18 +1752,28 @@ button:hover {
   background: #1ebe5b;
 }
 
+button:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
 #resultado {
-  margin-top: 20px;
+  margin-top: 25px;
   text-align: left;
   white-space: pre-wrap;
   background: #f4f4f4;
-  padding: 12px;
-  border-radius: 6px;
+  padding: 15px;
+  border-radius: 8px;
   font-size: 13px;
+  word-break: break-word;
 }
 
 .error {
   color: #d32f2f;
+}
+
+.ok {
+  color: #188038;
 }
 
 </style>
@@ -1649,20 +1787,32 @@ Conectar número de WhatsApp
 </h2>
 
 <p>
-Da clic al botón y sigue el flujo.
-Cuando te pregunte, elige la opción
-de conectar tu cuenta existente de
-WhatsApp Business app.
+Da clic al botón y sigue el flujo de Meta.
 </p>
 
-<button onclick="launchWhatsAppSignup()">
+<p>
+Cuando aparezca la opción correspondiente,
+selecciona conectar tu cuenta existente de
+WhatsApp Business.
+</p>
+
+<button
+  id="btnConectar"
+  onclick="launchWhatsAppSignup()"
+>
 Conectar WhatsApp
 </button>
 
-<div id="resultado"></div>
+<div id="resultado">
+Esperando...
+</div>
 
 
 <script>
+
+// ==========================================================
+// FACEBOOK SDK
+// ==========================================================
 
 window.fbAsyncInit = function () {
 
@@ -1685,25 +1835,31 @@ window.fbAsyncInit = function () {
     });
 
     console.log(
-      "Facebook SDK inicializado."
+      "[FB] SDK inicializado correctamente."
     );
 
   } catch (err) {
 
+    console.error(
+      "[FB] Error:",
+      err
+    );
+
     document.getElementById(
-      'resultado'
+      "resultado"
     ).innerHTML =
       '<p class="error">' +
       '⚠️ Error al inicializar Facebook SDK.' +
       '</p>';
 
-    console.error(
-      'Facebook init error:',
-      err
-    );
   }
+
 };
 
+
+// ==========================================================
+// CARGAR FACEBOOK SDK
+// ==========================================================
 
 (function (
   d,
@@ -1711,16 +1867,17 @@ window.fbAsyncInit = function () {
   id
 ) {
 
-  var js,
-      fjs =
-        d.getElementsByTagName(
-          s
-        )[0];
+  var js;
+
+  var fjs =
+    d.getElementsByTagName(s)[0];
 
   if (
     d.getElementById(id)
   ) {
+
     return;
+
   }
 
   js =
@@ -1730,13 +1887,19 @@ window.fbAsyncInit = function () {
     id;
 
   js.src =
-    'https://connect.facebook.net/es_LA/sdk.js';
+    "https://connect.facebook.net/es_LA/sdk.js";
+
+  js.async =
+    true;
+
+  js.defer =
+    true;
 
   js.onerror =
     function () {
 
       document.getElementById(
-        'resultado'
+        "resultado"
       ).innerHTML =
         '<p class="error">' +
         '⚠️ No se pudo cargar Facebook SDK.' +
@@ -1751,37 +1914,53 @@ window.fbAsyncInit = function () {
 
 })(
   document,
-  'script',
-  'facebook-jssdk'
+  "script",
+  "facebook-jssdk"
 );
 
 
 // ==========================================================
-// INICIAR FACEBOOK LOGIN FOR BUSINESS
+// INICIAR WHATSAPP EMBEDDED SIGNUP
 // ==========================================================
 
 function launchWhatsAppSignup() {
 
+  const resultado =
+    document.getElementById(
+      "resultado"
+    );
+
+  const boton =
+    document.getElementById(
+      "btnConectar"
+    );
+
+
   if (
-    typeof FB === 'undefined'
+    typeof FB === "undefined"
   ) {
 
-    document.getElementById(
-      'resultado'
-    ).innerHTML =
+    resultado.innerHTML =
       '<p class="error">' +
-      '⚠️ Facebook SDK aún no está disponible. ' +
-      'Espera un momento e intenta de nuevo.' +
+      '⚠️ Facebook SDK todavía no está disponible. ' +
+      'Espera unos segundos e intenta nuevamente.' +
       '</p>';
 
     return;
+
   }
 
 
-  document.getElementById(
-    'resultado'
-  ).textContent =
-    'Abriendo Facebook...';
+  boton.disabled =
+    true;
+
+  resultado.textContent =
+    "Abriendo Facebook...";
+
+
+  console.log(
+    "[WHATSAPP SIGNUP] Iniciando FB.login"
+  );
 
 
   FB.login(
@@ -1789,40 +1968,73 @@ function launchWhatsAppSignup() {
     function (response) {
 
       console.log(
-        "Respuesta de FB.login:",
+        "[WHATSAPP SIGNUP] Respuesta completa:",
         response
       );
 
 
       if (
-        response.status === 'connected' &&
+        response &&
         response.authResponse
       ) {
 
+        const authResponse =
+          response.authResponse;
+
+
+        console.log(
+          "[WHATSAPP SIGNUP] authResponse:",
+          authResponse
+        );
+
+
         const code =
-          response.authResponse.code;
+          authResponse.code;
 
-        document.getElementById(
-          'resultado'
-        ).textContent =
-          'Código recibido. Conectando con el servidor...';
 
+        if (!code) {
+
+          boton.disabled =
+            false;
+
+          resultado.innerHTML =
+            '<p class="error">' +
+            '⚠️ Meta no devolvió un código de autorización.' +
+            '</p>';
+
+          return;
+
+        }
+
+
+        resultado.textContent =
+          "Código recibido. Intercambiando autorización con el servidor...";
+
+
+        // ==================================================
+        // ENVIAR CODE AL SERVIDOR
+        // ==================================================
 
         fetch(
-          '/conectar-whatsapp',
+          "/conectar-whatsapp",
           {
 
             method:
-              'POST',
+              "POST",
 
             headers: {
-              'Content-Type':
-                'application/json'
+
+              "Content-Type":
+                "application/json"
+
             },
 
             body:
               JSON.stringify({
-                code: code
+
+                code:
+                  code
+
               })
 
           }
@@ -1834,7 +2046,14 @@ function launchWhatsAppSignup() {
             const data =
               await r.json();
 
+            console.log(
+              "[WHATSAPP SIGNUP] Respuesta servidor:",
+              data
+            );
+
+
             if (!r.ok) {
+
               throw new Error(
                 JSON.stringify(
                   data,
@@ -1842,7 +2061,9 @@ function launchWhatsAppSignup() {
                   2
                 )
               );
+
             }
+
 
             return data;
 
@@ -1852,14 +2073,21 @@ function launchWhatsAppSignup() {
         .then(
           function (data) {
 
-            document.getElementById(
-              'resultado'
-            ).textContent =
+            boton.disabled =
+              false;
+
+
+            resultado.innerHTML =
+              '<p class="ok">' +
+              '✅ WhatsApp autorizado correctamente.' +
+              '</p>' +
+              '<pre>' +
               JSON.stringify(
                 data,
                 null,
                 2
-              );
+              ) +
+              '</pre>';
 
           }
         )
@@ -1867,27 +2095,45 @@ function launchWhatsAppSignup() {
         .catch(
           function (err) {
 
-            document.getElementById(
-              'resultado'
-            ).innerHTML =
+            boton.disabled =
+              false;
+
+
+            console.error(
+              "[WHATSAPP SIGNUP] Error:",
+              err
+            );
+
+
+            resultado.innerHTML =
               '<p class="error">' +
-              '⚠️ Error al conectar con el servidor: ' +
+              '⚠️ Error al conectar con el servidor:</p>' +
+              '<pre>' +
               err.message +
-              '</p>';
+              '</pre>';
 
           }
         );
 
+
       } else {
 
-        document.getElementById(
-          'resultado'
-        ).textContent =
-          'Cancelaste el inicio de sesión o no autorizaste todo.';
+        boton.disabled =
+          false;
+
+
+        console.log(
+          "[WHATSAPP SIGNUP] Usuario canceló o Meta no autorizó."
+        );
+
+
+        resultado.textContent =
+          "Cancelaste el proceso o no se completó la autorización.";
 
       }
 
     },
+
 
     {
 
@@ -1895,7 +2141,7 @@ function launchWhatsAppSignup() {
         '${FACEBOOK_CONFIG_ID}',
 
       response_type:
-        'code',
+        "code",
 
       override_default_response_type:
         true,
@@ -1906,7 +2152,7 @@ function launchWhatsAppSignup() {
           3,
 
         featureType:
-          'whatsapp_business_app_onboarding',
+          "whatsapp_business_app_onboarding",
 
       },
 
@@ -1924,8 +2170,9 @@ function launchWhatsAppSignup() {
 
   }
 );
+```
 
-
+ 
 // ============================================================
 // DIAGNÓSTICO TOKEN
 // ============================================================
