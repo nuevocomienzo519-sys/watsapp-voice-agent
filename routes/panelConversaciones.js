@@ -273,6 +273,7 @@ router.get("/conversaciones", (_req, res) => {
       }).join("") || '<div class="vacio">Sin mensajes.</div>';
       window.scrollTo(0, document.body.scrollHeight);
       textoResponder.focus();
+      generarSugerenciaIA();
     } catch(e){ manejarError(e); }
   }
 
