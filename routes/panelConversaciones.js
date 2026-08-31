@@ -3,7 +3,8 @@
 // Panel web para ver las conversaciones del agente desde cualquier
 // dispositivo, sin necesidad del celular donde vive el WhatsApp.
 //
-// Es de SOLO LECTURA: muestra los chats, no permite responder.
+// Permite ver los chats Y responder mensajes de texto directo por la
+// Cloud API (no solo lectura).
 //
 // Variable de entorno necesaria en Render:
 //   PANEL_CLAVE  -> contraseña compartida del equipo
@@ -13,11 +14,12 @@
 const express = require("express");
 const router = express.Router();
 const conversaciones = require("../lib/conversaciones");
+const { sendTextMessage } = require("../lib/whatsappCloudClient");
 
 function claveValida(req) {
   const esperada = process.env.PANEL_CLAVE;
   if (!esperada) return false;
-  const recibida = req.query.clave || req.headers["x-panel-clave"];
+  const recibida = req.query.clave || req.headers["x-panel-clave"] || req.body?.clave;
   return recibida === esperada;
 }
 
@@ -43,6 +45,37 @@ router.get("/api/conversaciones/:chatId", async (req, res) => {
   }
 });
 
+// --- API: responder un mensaje ---------------------------------------------
+// Manda un mensaje de texto libre por la Cloud API al número (chatId) y lo
+// guarda en el historial como turno del "assistant", para que se vea en el
+// panel igual que si hubiera respondido el bot.
+router.post("/api/conversaciones/:chatId/responder", async (req, res) => {
+  if (!claveValida(req)) return res.status(403).json({ error: "Clave incorrecta" });
+  const chatId = req.params.chatId;
+  const texto = String(req.body?.texto || "").trim();
+  if (!texto) return res.status(400).json({ ok: false, error: "Falta el texto del mensaje." });
+
+  try {
+    await sendTextMessage(chatId, texto);
+  } catch (err) {
+    return res.status(502).json({ ok: false, error: err.message });
+  }
+
+  try {
+    await conversaciones.guardarTurno({
+      chatId,
+      telefono: chatId,
+      nombre: null,
+      textoCliente: null,
+      textoAgente: texto,
+    });
+  } catch (err) {
+    console.error("[panel] Se envió el mensaje pero no se pudo guardar en el historial:", err.message);
+  }
+
+  res.json({ ok: true });
+});
+
 // --- Página HTML -----------------------------------------------------------
 router.get("/conversaciones", (_req, res) => {
   res.type("html").send(`<!doctype html>
@@ -60,7 +93,7 @@ router.get("/conversaciones", (_req, res) => {
            position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:10px; }
   header button { background:rgba(255,255,255,.2); border:0; color:#fff; border-radius:6px;
                   padding:6px 10px; font-size:14px; cursor:pointer; }
-  .wrap { max-width:820px; margin:0 auto; padding:12px; }
+  .wrap { max-width:820px; margin:0 auto; padding:12px; padding-bottom:90px; }
   .login { background:#fff; border-radius:10px; padding:20px; margin-top:40px; }
   .login input { width:100%; padding:12px; font-size:16px; border:1px solid #ddd;
                  border-radius:8px; margin:10px 0; }
@@ -80,6 +113,15 @@ router.get("/conversaciones", (_req, res) => {
   .msg .hora { display:block; font-size:11px; color:#8a8; margin-top:4px; text-align:right; }
   .vacio { text-align:center; color:#889; padding:40px 20px; line-height:1.5; }
   .cargando { text-align:center; color:#889; padding:30px; }
+  .responder { position:fixed; bottom:0; left:0; right:0; background:#fff;
+               border-top:1px solid #e6e6e6; padding:10px; display:none; gap:8px; }
+  .responder.activo { display:flex; }
+  .responder-wrap { max-width:820px; margin:0 auto; display:flex; gap:8px; width:100%; }
+  .responder textarea { flex:1; resize:none; border:1px solid #ddd; border-radius:20px;
+                         padding:10px 14px; font-size:15px; font-family:inherit; max-height:100px; }
+  .responder button { background:var(--verde); color:#fff; border:0; border-radius:50%;
+                       width:44px; height:44px; flex-shrink:0; font-size:18px; cursor:pointer; }
+  .responder button:disabled { opacity:.5; }
 </style>
 </head>
 <body>
@@ -96,6 +138,12 @@ router.get("/conversaciones", (_req, res) => {
   </div>
   <div id="contenido"></div>
 </div>
+<div class="responder" id="responder">
+  <div class="responder-wrap">
+    <textarea id="textoResponder" rows="1" placeholder="Escribe una respuesta…"></textarea>
+    <button id="btnEnviar">➤</button>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -104,6 +152,10 @@ router.get("/conversaciones", (_req, res) => {
   var contenido = document.getElementById("contenido");
   var titulo = document.getElementById("titulo");
   var btnVolver = document.getElementById("volver");
+  var barraResponder = document.getElementById("responder");
+  var textoResponder = document.getElementById("textoResponder");
+  var btnEnviar = document.getElementById("btnEnviar");
+  var chatActualId = null;
 
   function fecha(iso){
     var d = new Date(iso), hoy = new Date();
@@ -115,13 +167,16 @@ router.get("/conversaciones", (_req, res) => {
   }
   function esc(t){ var e=document.createElement("div"); e.textContent=t||""; return e.innerHTML; }
 
-  async function pedir(url){
-    var r = await fetch(url + (url.indexOf("?")>-1?"&":"?") + "clave=" + encodeURIComponent(clave));
+  async function pedir(url, opciones){
+    var sep = url.indexOf("?")>-1?"&":"?";
+    var r = await fetch(url + sep + "clave=" + encodeURIComponent(clave), opciones);
     if (r.status === 403) throw new Error("403");
     return r.json();
   }
 
   async function verLista(){
+    chatActualId = null;
+    barraResponder.classList.remove("activo");
     btnVolver.style.display = "none";
     titulo.textContent = "Conversaciones";
     contenido.innerHTML = '<div class="cargando">Cargando…</div>';
@@ -134,7 +189,7 @@ router.get("/conversaciones", (_req, res) => {
       }
       contenido.innerHTML = d.chats.map(function(c){
         var quien = c.nombre || c.telefono || c.chat_id;
-        var prefijo = c.rol === "assistant" ? "Asistente: " : "";
+        var prefijo = c.rol === "assistant" ? "Tú: " : "";
         return '<div class="chat-item" data-id="'+esc(c.chat_id)+'" data-nom="'+esc(quien)+'">' +
                '<div class="chat-nombre">'+esc(quien)+'</div>' +
                '<div class="chat-prev">'+esc(prefijo + (c.texto||""))+'</div>' +
@@ -147,9 +202,11 @@ router.get("/conversaciones", (_req, res) => {
   }
 
   async function verChat(id, nombre){
+    chatActualId = id;
     btnVolver.style.display = "block";
     titulo.textContent = nombre || "Conversación";
     contenido.innerHTML = '<div class="cargando">Cargando…</div>';
+    barraResponder.classList.add("activo");
     try {
       var d = await pedir("/api/conversaciones/" + encodeURIComponent(id));
       contenido.innerHTML = (d.mensajes||[]).map(function(m){
@@ -157,7 +214,34 @@ router.get("/conversaciones", (_req, res) => {
                esc(m.texto) + '<span class="hora">'+fecha(m.creado_en)+'</span></div>';
       }).join("") || '<div class="vacio">Sin mensajes.</div>';
       window.scrollTo(0, document.body.scrollHeight);
+      textoResponder.focus();
     } catch(e){ manejarError(e); }
+  }
+
+  async function enviarRespuesta(){
+    var texto = textoResponder.value.trim();
+    if (!texto || !chatActualId) return;
+    btnEnviar.disabled = true;
+    try {
+      var r = await fetch("/api/conversaciones/" + encodeURIComponent(chatActualId) + "/responder?clave=" + encodeURIComponent(clave), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto: texto })
+      });
+      var d = await r.json();
+      if (r.status === 403) { manejarError(new Error("403")); return; }
+      if (!d.ok) {
+        alert("No se pudo enviar: " + (d.error || "error desconocido"));
+        return;
+      }
+      textoResponder.value = "";
+      var idActual = chatActualId, nombreActual = titulo.textContent;
+      await verChat(idActual, nombreActual);
+    } catch (e) {
+      alert("No se pudo enviar: " + e.message);
+    } finally {
+      btnEnviar.disabled = false;
+    }
   }
 
   function manejarError(e){
@@ -166,6 +250,7 @@ router.get("/conversaciones", (_req, res) => {
       clave = "";
       login.style.display = "block";
       contenido.innerHTML = "";
+      barraResponder.classList.remove("activo");
       document.getElementById("errorLogin").textContent = "Contraseña incorrecta.";
     } else {
       contenido.innerHTML = '<div class="vacio">No se pudo cargar. Intenta de nuevo.</div>';
@@ -173,6 +258,10 @@ router.get("/conversaciones", (_req, res) => {
   }
 
   btnVolver.onclick = verLista;
+  btnEnviar.onclick = enviarRespuesta;
+  textoResponder.addEventListener("keydown", function(ev){
+    if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); enviarRespuesta(); }
+  });
   document.getElementById("entrar").onclick = function(){
     clave = document.getElementById("clave").value.trim();
     if (!clave) return;
