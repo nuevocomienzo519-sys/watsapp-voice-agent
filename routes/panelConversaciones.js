@@ -419,7 +419,7 @@ router.get("/conversaciones", (_req, res) => {
                 (modelo.preventa ? ' (Preventa)' : '') + '</div>';
         html += '<div class="fotos-grid">';
         fotos.forEach(function(foto){
-          var url = foto.url || foto;
+          var url = location.origin + "/galeria/" + (foto.url || foto);
           html += '<img src="' + esc(url) + '" data-url="' + esc(url) + '">';
         });
         html += '</div>';
