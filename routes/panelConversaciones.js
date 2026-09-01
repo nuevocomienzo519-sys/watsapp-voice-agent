@@ -250,6 +250,7 @@ router.get("/conversaciones", (_req, res) => {
   <button id="volver" style="display:none">←</button>
   <span id="titulo">Conversaciones</span>
   <a href="/galeria/" target="_blank" id="linkCatalogo" style="margin-left:auto;color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,.2);padding:6px 10px;border-radius:6px">📁 Catálogo</a>
+  <button id="btnNuevoContacto" style="margin-left:8px;background:rgba(255,255,255,.2);border:0;color:#fff;border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer">➕ Contacto</button>
   <button id="btnFotos" style="display:none">📷 Fotos</button>
 </header>
 <div class="wrap" id="app">
