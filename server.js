@@ -1,3 +1,12 @@
+const FACEBOOK_APP_ID =
+  process.env.FACEBOOK_APP_ID || "1068574982377434";
+
+const FACEBOOK_CONFIG_ID =
+  process.env.FACEBOOK_CONFIG_ID || "1048508727955206";
+
+const FACEBOOK_REDIRECT_URI =
+  process.env.FACEBOOK_REDIRECT_URI ||
+  "https://watsapp-voice-agent.onrender.com/conectar-whatsapp";
 ```js
 require("dotenv").config();
 const path = require("path");
