@@ -274,6 +274,26 @@ router.get("/conversaciones", (_req, res) => {
     </div>
   </div>
 </div>
+<div class="fotos-modal" id="nuevoContactoModal">
+  <div class="fotos-modal-inner">
+    <div class="fotos-modal-header">
+      <span>Agregar contacto nuevo</span>
+      <button id="cerrarNuevoContacto">✕</button>
+    </div>
+    <div style="padding:16px">
+      <div style="margin-bottom:10px">
+        <label style="font-size:13px;color:#555;display:block;margin-bottom:4px">Teléfono (10 dígitos)</label>
+        <input type="tel" id="inputTelefonoNuevo" placeholder="4721234567" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:13px;color:#555;display:block;margin-bottom:4px">Nombre (opcional)</label>
+        <input type="text" id="inputNombreNuevo" placeholder="Nombre del cliente" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box">
+      </div>
+      <button id="btnEnviarNuevoContacto" style="width:100%;padding:12px;background:var(--verde);color:#fff;border:0;border-radius:8px;font-size:15px;cursor:pointer">Enviar plantilla de seguimiento</button>
+      <div id="avisoNuevoContacto" style="text-align:center;font-size:13px;margin-top:8px"></div>
+    </div>
+  </div>
+</div>
 <div class="fotos-modal" id="fotosModal">
   <div class="fotos-modal-inner">
     <div class="fotos-modal-header">
@@ -436,7 +456,26 @@ router.get("/conversaciones", (_req, res) => {
     textoResponder.value = sugerenciaTexto.textContent;
     textoResponder.focus();
   }
-
+<div class="fotos-modal" id="nuevoContactoModal">
+  <div class="fotos-modal-inner">
+    <div class="fotos-modal-header">
+      <span>Agregar contacto nuevo</span>
+      <button id="cerrarNuevoContacto">✕</button>
+    </div>
+    <div style="padding:16px">
+      <div style="margin-bottom:10px">
+        <label style="font-size:13px;color:#555;display:block;margin-bottom:4px">Teléfono (10 dígitos)</label>
+        <input type="tel" id="inputTelefonoNuevo" placeholder="4721234567" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:13px;color:#555;display:block;margin-bottom:4px">Nombre (opcional)</label>
+        <input type="text" id="inputNombreNuevo" placeholder="Nombre del cliente" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box">
+      </div>
+      <button id="btnEnviarNuevoContacto" style="width:100%;padding:12px;background:var(--verde);color:#fff;border:0;border-radius:8px;font-size:15px;cursor:pointer">Enviar plantilla de seguimiento</button>
+      <div id="avisoNuevoContacto" style="text-align:center;font-size:13px;margin-top:8px"></div>
+    </div>
+  </div>
+</div>
   async function abrirFotos(){
     fotosModal.classList.add("activo");
     if (manifestCache) { pintarFotos(manifestCache); return; }
