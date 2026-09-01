@@ -1525,10 +1525,18 @@ app.post("/conectar-whatsapp", async (req, res) => {
     // 1. INTERCAMBIAR CODE POR TOKEN
     // ======================================================
 
+    // IMPORTANTE: aquí NO se manda "redirect_uri".
+    // Cuando el "code" viene del SDK de JavaScript vía FB.login()
+    // (como en Embedded Signup), Meta lo genera sin un redirect_uri
+    // real -no hay redirección de servidor a servidor-, así que
+    // mandar redirect_uri en el intercambio provoca el error
+    // "Error validating verification code... redirect_uri" con
+    // error_subcode 36008. redirect_uri solo aplica al flujo
+    // clásico de OAuth por redirección (Login Dialog por URL),
+    // no al flujo de FB.login() en el navegador.
     const parametros = new URLSearchParams();
     parametros.append("client_id", FACEBOOK_APP_ID);
     parametros.append("client_secret", META_APP_SECRET);
-    parametros.append("redirect_uri", FACEBOOK_REDIRECT_URI);
     parametros.append("code", code);
 
     const tokenResponse = await fetch(
@@ -1558,9 +1566,17 @@ app.post("/conectar-whatsapp", async (req, res) => {
         diagnostico: {
           app_id: FACEBOOK_APP_ID,
           config_id: FACEBOOK_CONFIG_ID,
-          redirect_uri: FACEBOOK_REDIRECT_URI,
           mensaje:
-            "El redirect_uri utilizado para intercambiar el código debe ser exactamente el mismo utilizado durante la autorización de Facebook (FB.login), y debe estar dado de alta en Meta Developers > Configuración del cliente de OAuth.",
+            "El code de FB.login() solo puede usarse una vez y expira " +
+            "en segundos. Causas típicas: (1) se intentó usar un code " +
+            "ya usado o expirado -recarga la página e intenta de nuevo " +
+            "desde cero-, (2) el App Secret (META_APP_SECRET / " +
+            "WHATSAPP_APP_SECRET) no coincide con el de esta app en " +
+            "Meta Developers, o (3) el dominio " +
+            "watsapp-voice-agent.onrender.com no está dado de alta en " +
+            "Meta Developers > Facebook Login for Business > " +
+            "Configuración del cliente de OAuth (Dominios permitidos " +
+            "para el SDK de JavaScript).",
         },
       });
     }
