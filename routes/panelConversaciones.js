@@ -14,7 +14,11 @@
 const express = require("express");
 const router = express.Router();
 const conversaciones = require("../lib/conversaciones");
-const { sendTextMessage, sendImageMessage } = require("../lib/whatsappCloudClient");
+const { sendTextMessage, sendImageMessage, enviarMensajePlantilla } = require("../lib/whatsappCloudClient");
+
+const PLANTILLA_SEGUIMIENTO = process.env.PLANTILLA_SEGUIMIENTO || "seguimiento_contacto";
+const PLANTILLA_IDIOMA = process.env.PLANTILLA_IDIOMA || "es_MX";
+const PLANTILLA_SIN_PARAMETROS = process.env.PLANTILLA_SIN_PARAMETROS === "1";
 const { generarSugerencia } = require("../lib/llm");
 
 function claveValida(req) {
@@ -124,7 +128,44 @@ router.post("/api/conversaciones/:chatId/sugerencia", async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+// --- API: agregar contacto nuevo y mandar plantilla de seguimiento ---------
+router.post("/api/contactos/nuevo", async (req, res) => {
+  if (!claveValida(req)) return res.status(403).json({ error: "Clave incorrecta" });
+  let telefono = String(req.body?.telefono || "").trim().replace(/\D/g, "");
+  const nombre = String(req.body?.nombre || "").trim() || null;
 
+  if (telefono.length === 10) telefono = "52" + telefono;
+  if (telefono.length !== 12) {
+    return res.status(400).json({ ok: false, error: "Teléfono inválido. Usa 10 dígitos (ej. 4721234567)." });
+  }
+
+  try {
+    await enviarMensajePlantilla(
+      telefono,
+      PLANTILLA_SEGUIMIENTO,
+      PLANTILLA_IDIOMA,
+      PLANTILLA_SIN_PARAMETROS
+        ? []
+        : [nombre || "hola", "Quedamos pendientes de tu interés en Diamante o Santuario."]
+    );
+  } catch (err) {
+    return res.status(502).json({ ok: false, error: err.message });
+  }
+
+  try {
+    await conversaciones.guardarMensajeSaliente({
+      chatId: telefono,
+      telefono,
+      texto: `📤 Mensaje de seguimiento enviado${nombre ? " a " + nombre : ""}.`,
+    });
+  } catch (err) {
+    console.error("[panel] No se pudo guardar el contacto nuevo en el historial:", err.message);
+  }
+
+  res.json({ ok: true, chatId: telefono });
+});
+
+// --- Página HTML -----------------------------------------------------------
 // --- Página HTML -----------------------------------------------------------
 router.get("/conversaciones", (_req, res) => {
   res.type("html").send(`<!doctype html>
