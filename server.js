@@ -1436,6 +1436,12 @@ app.post(
 const META_APP_SECRET =
   process.env.META_APP_SECRET || process.env.WHATSAPP_APP_SECRET;
 
+// Recuerda qué "code" de FB.login() ya se intentó intercambiar en
+// este proceso, solo para poder avisar en el log si llega repetido
+// (un code solo sirve una vez). Se limpia solo si el servicio se
+// reinicia; no necesita persistir en base de datos.
+const codigosYaProcesados = new Set();
+
 // Oculta cualquier valor que parezca un token/secreto antes de
 // mandar una respuesta de Meta al navegador. Es una red de
 // seguridad extra: ninguna ruta de abajo manda el access_token
@@ -1507,11 +1513,36 @@ app.post("/conectar-whatsapp", async (req, res) => {
       });
     }
 
+    // Detección de code repetido: el "code" de FB.login() solo
+    // sirve UNA vez. Si llega repetido (doble clic, reintento del
+    // navegador, refresh sin limpiar, etc.) Meta va a rechazarlo
+    // con el mismo error de "verification code" aunque la primera
+    // vez sí haya funcionado. Esto lo deja bien claro en el log.
+    if (codigosYaProcesados.has(code)) {
+      console.warn(
+        "[WHATSAPP SIGNUP] Este 'code' YA se había recibido antes en este " +
+        "proceso del servidor. Un code de FB.login() solo se puede " +
+        "intercambiar una vez; si Meta lo rechaza, el problema real es " +
+        "que ya se usó (o expiró), no el redirect_uri."
+      );
+    }
+    codigosYaProcesados.add(code);
+
     console.log("==========================================");
     console.log("[WHATSAPP SIGNUP] Iniciando intercambio");
+    console.log("[WHATSAPP SIGNUP] Hora del intento:", new Date().toISOString());
     console.log("[WHATSAPP SIGNUP] App ID:", FACEBOOK_APP_ID);
     console.log("[WHATSAPP SIGNUP] Config ID:", FACEBOOK_CONFIG_ID);
-    console.log("[WHATSAPP SIGNUP] Redirect URI:", FACEBOOK_REDIRECT_URI);
+    console.log(
+      "[WHATSAPP SIGNUP] Longitud de META_APP_SECRET usado:",
+      META_APP_SECRET.length,
+      "(fuente:",
+      process.env.META_APP_SECRET ? "META_APP_SECRET" : "WHATSAPP_APP_SECRET",
+      ")"
+    );
+    console.log(
+      "[WHATSAPP SIGNUP] redirect_uri enviado en el intercambio: NO (intencional)"
+    );
     console.log(
       "[WHATSAPP SIGNUP] waba_id (cliente):",
       wabaIdDesdeCliente || "no recibido"
@@ -1534,6 +1565,11 @@ app.post("/conectar-whatsapp", async (req, res) => {
     // error_subcode 36008. redirect_uri solo aplica al flujo
     // clásico de OAuth por redirección (Login Dialog por URL),
     // no al flujo de FB.login() en el navegador.
+    //
+    // OJO: Meta reutiliza este MISMO mensaje/subcode 36008 también
+    // cuando el code ya se usó, ya expiró (dura muy poco, segundos),
+    // o cuando client_secret no es el correcto para este App ID. El
+    // texto del error no distingue estas causas.
     const parametros = new URLSearchParams();
     parametros.append("client_id", FACEBOOK_APP_ID);
     parametros.append("client_secret", META_APP_SECRET);
