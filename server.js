@@ -570,6 +570,13 @@ app.get("/galeria/asesores.json", (req, res) => {
   });
 });
 
+// ============================================================
+// VERIFICACIÓN DE DOMINIO — META BUSINESS
+// ============================================================
+
+app.get("/u1waqrnb5kyyvl7jrt0gc8wndkgxx2.html", (req, res) => {
+  res.type("text/plain").send("u1waqrnb5kyyvl7jrt0gc8wndkgxx2");
+});
 
 // ============================================================
 // ARCHIVOS DE GALERÍA
