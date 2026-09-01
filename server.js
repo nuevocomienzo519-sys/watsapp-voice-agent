@@ -181,7 +181,7 @@ async function cerrarExportacion(chatId, pendiente) {
     );
 
     avisoEnvio =
-      `📤 Mensaje de seguimiento enviado a ${telefono}.`;
+  `Mensaje de seguimiento enviado a ${telefono}.`;
   } catch (err) {
     console.error(
       "[exportacion] Falló el envío de la plantilla:",
