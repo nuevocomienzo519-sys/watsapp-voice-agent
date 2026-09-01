@@ -274,26 +274,7 @@ router.get("/conversaciones", (_req, res) => {
     </div>
   </div>
 </div>
-<div class="fotos-modal" id="nuevoContactoModal">
-  <div class="fotos-modal-inner">
-    <div class="fotos-modal-header">
-      <span>Agregar contacto nuevo</span>
-      <button id="cerrarNuevoContacto">✕</button>
-    </div>
-    <div style="padding:16px">
-      <div style="margin-bottom:10px">
-        <label style="font-size:13px;color:#555;display:block;margin-bottom:4px">Teléfono (10 dígitos)</label>
-        <input type="tel" id="inputTelefonoNuevo" placeholder="4721234567" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box">
-      </div>
-      <div style="margin-bottom:14px">
-        <label style="font-size:13px;color:#555;display:block;margin-bottom:4px">Nombre (opcional)</label>
-        <input type="text" id="inputNombreNuevo" placeholder="Nombre del cliente" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box">
-      </div>
-      <button id="btnEnviarNuevoContacto" style="width:100%;padding:12px;background:var(--verde);color:#fff;border:0;border-radius:8px;font-size:15px;cursor:pointer">Enviar plantilla de seguimiento</button>
-      <div id="avisoNuevoContacto" style="text-align:center;font-size:13px;margin-top:8px"></div>
-    </div>
-  </div>
-</div>
+
 <div class="fotos-modal" id="nuevoContactoModal">
   <div class="fotos-modal-inner">
     <div class="fotos-modal-header">
@@ -545,7 +526,56 @@ btnEnviarNuevoContacto.onclick = async function(){
   }
 };
 
-async function abrirFotos(){
+var btnNuevoContacto = document.getElementById("btnNuevoContacto");
+var nuevoContactoModal = document.getElementById("nuevoContactoModal");
+var cerrarNuevoContactoBtn = document.getElementById("cerrarNuevoContacto");
+var inputTelefonoNuevo = document.getElementById("inputTelefonoNuevo");
+var inputNombreNuevo = document.getElementById("inputNombreNuevo");
+var btnEnviarNuevoContacto = document.getElementById("btnEnviarNuevoContacto");
+var avisoNuevoContacto = document.getElementById("avisoNuevoContacto");
+
+btnNuevoContacto.onclick = function(){
+  nuevoContactoModal.classList.add("activo");
+  avisoNuevoContacto.textContent = "";
+  inputTelefonoNuevo.value = "";
+  inputNombreNuevo.value = "";
+};
+cerrarNuevoContactoBtn.onclick = function(){ nuevoContactoModal.classList.remove("activo"); };
+
+btnEnviarNuevoContacto.onclick = async function(){
+  var tel = inputTelefonoNuevo.value.replace(/\D/g,"");
+  var nombre = inputNombreNuevo.value.trim();
+  if (tel.length !== 10) {
+    avisoNuevoContacto.className = "aviso error";
+    avisoNuevoContacto.textContent = "Teléfono inválido. Usa 10 dígitos (ej. 4721234567).";
+    return;
+  }
+  btnEnviarNuevoContacto.disabled = true;
+  avisoNuevoContacto.className = "aviso";
+  avisoNuevoContacto.textContent = "Enviando…";
+  try {
+    var r = await fetch("/api/contactos/nuevo?clave=" + encodeURIComponent(clave), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ telefono: tel, nombre: nombre })
+    });
+    var d = await r.json();
+    if (!d.ok) throw new Error(d.error || "Error desconocido");
+    avisoNuevoContacto.className = "aviso ok";
+    avisoNuevoContacto.textContent = "✅ Mensaje enviado.";
+    setTimeout(function(){
+      nuevoContactoModal.classList.remove("activo");
+      verLista();
+    }, 900);
+  } catch (e) {
+    avisoNuevoContacto.className = "aviso error";
+    avisoNuevoContacto.textContent = "❌ " + e.message;
+  } finally {
+    btnEnviarNuevoContacto.disabled = false;
+  }
+};
+
+
   async function abrirFotos(){
     fotosModal.classList.add("activo");
     if (manifestCache) { pintarFotos(manifestCache); return; }
