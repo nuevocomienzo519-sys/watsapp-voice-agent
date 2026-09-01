@@ -1,13 +1,3 @@
-const FACEBOOK_APP_ID =
-  process.env.FACEBOOK_APP_ID || "1068574982377434";
-
-const FACEBOOK_CONFIG_ID =
-  process.env.FACEBOOK_CONFIG_ID || "1048508727955206";
-
-const FACEBOOK_REDIRECT_URI =
-  process.env.FACEBOOK_REDIRECT_URI ||
-  "https://watsapp-voice-agent.onrender.com/conectar-whatsapp";
-```js
 require("dotenv").config();
 const path = require("path");
 const fs = require("fs");
@@ -1428,317 +1418,388 @@ app.post(
 
 
 // ============================================================
-```js
-// ============================================================
 // WHATSAPP EMBEDDED SIGNUP
 // FACEBOOK LOGIN FOR BUSINESS
+//
+// NOTA: FACEBOOK_APP_ID, FACEBOOK_CONFIG_ID y FACEBOOK_REDIRECT_URI
+// ya están declaradas arriba, en "CONFIGURACIÓN META / FACEBOOK".
+// No se vuelven a declarar aquí. (Antes estaban declaradas TRES
+// veces en el archivo -al inicio, en la sección de configuración,
+// y otra vez aquí- lo que provoca en Node un error de sintaxis
+// "Identifier 'FACEBOOK_APP_ID' has already been declared" y
+// tumba el servidor por completo antes de arrancar.)
 // ============================================================
 
-const FACEBOOK_APP_ID =
-  process.env.FACEBOOK_APP_ID || "1068574982377434";
+// El App Secret puede estar guardado en Render bajo cualquiera de
+// estos dos nombres (según cuándo se configuró). Se usa el que
+// exista, para no depender de que coincidan exactamente.
+const META_APP_SECRET =
+  process.env.META_APP_SECRET || process.env.WHATSAPP_APP_SECRET;
 
-const FACEBOOK_CONFIG_ID =
-  process.env.FACEBOOK_CONFIG_ID || "1048508727955206";
+// Oculta cualquier valor que parezca un token/secreto antes de
+// mandar una respuesta de Meta al navegador. Es una red de
+// seguridad extra: ninguna ruta de abajo manda el access_token
+// ni el App Secret al cliente, pero esto evita que un campo
+// inesperado en la respuesta de Meta se filtre por accidente.
+function ocultarTokens(obj) {
+  if (!obj || typeof obj !== "object") return obj;
 
-const FACEBOOK_REDIRECT_URI =
-  process.env.FACEBOOK_REDIRECT_URI ||
-  "https://watsapp-voice-agent.onrender.com/conectar-whatsapp";
+  const CLAVES_SENSIBLES = [
+    "access_token",
+    "token",
+    "client_secret",
+    "app_secret",
+    "authorization",
+  ];
+
+  if (Array.isArray(obj)) {
+    return obj.map(ocultarTokens);
+  }
+
+  const limpio = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (CLAVES_SENSIBLES.includes(key.toLowerCase())) {
+      limpio[key] = "[oculto]";
+    } else if (value && typeof value === "object") {
+      limpio[key] = ocultarTokens(value);
+    } else {
+      limpio[key] = value;
+    }
+  }
+  return limpio;
+}
 
 
 // ============================================================
 // INTERCAMBIO CODE -> ACCESS TOKEN
 // ============================================================
 
-app.post(
-  "/conectar-whatsapp",
-  async (req, res) => {
+app.post("/conectar-whatsapp", async (req, res) => {
+  try {
+    const code = String(req.body?.code || "").trim();
 
+    // Estos dos llegan del listener de postMessage en el navegador
+    // (evento WA_EMBEDDED_SIGNUP). Son opcionales porque Meta no
+    // siempre los manda, pero cuando llegan son la forma más
+    // confiable de saber exactamente qué WABA/número se conectó
+    // en ESTA sesión (evita ambigüedad cuando hay varias WABAs en
+    // el Business Manager, como ya ha pasado en esta cuenta).
+    const wabaIdDesdeCliente = String(req.body?.waba_id || "").trim();
+    const phoneNumberIdDesdeCliente = String(
+      req.body?.phone_number_id || ""
+    ).trim();
+
+    if (!code) {
+      return res.status(400).json({
+        ok: false,
+        error: "Falta el código de autorización.",
+      });
+    }
+
+    if (!META_APP_SECRET) {
+      console.error(
+        "[WHATSAPP SIGNUP] Falta META_APP_SECRET / WHATSAPP_APP_SECRET en las variables de entorno."
+      );
+      return res.status(500).json({
+        ok: false,
+        error:
+          "El servidor no tiene configurado el App Secret de Meta (META_APP_SECRET).",
+      });
+    }
+
+    console.log("==========================================");
+    console.log("[WHATSAPP SIGNUP] Iniciando intercambio");
+    console.log("[WHATSAPP SIGNUP] App ID:", FACEBOOK_APP_ID);
+    console.log("[WHATSAPP SIGNUP] Config ID:", FACEBOOK_CONFIG_ID);
+    console.log("[WHATSAPP SIGNUP] Redirect URI:", FACEBOOK_REDIRECT_URI);
+    console.log(
+      "[WHATSAPP SIGNUP] waba_id (cliente):",
+      wabaIdDesdeCliente || "no recibido"
+    );
+    console.log(
+      "[WHATSAPP SIGNUP] phone_number_id (cliente):",
+      phoneNumberIdDesdeCliente || "no recibido"
+    );
+
+    // ======================================================
+    // 1. INTERCAMBIAR CODE POR TOKEN
+    // ======================================================
+
+    const parametros = new URLSearchParams();
+    parametros.append("client_id", FACEBOOK_APP_ID);
+    parametros.append("client_secret", META_APP_SECRET);
+    parametros.append("redirect_uri", FACEBOOK_REDIRECT_URI);
+    parametros.append("code", code);
+
+    const tokenResponse = await fetch(
+      "https://graph.facebook.com/v22.0/oauth/access_token",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: parametros.toString(),
+      }
+    );
+
+    const tokenData = await tokenResponse.json();
+
+    // Nunca se imprime el token completo en logs, solo si llegó o no.
+    console.log(
+      "[WHATSAPP SIGNUP] Respuesta token recibida. access_token presente:",
+      !!tokenData.access_token
+    );
+
+    if (!tokenResponse.ok || !tokenData.access_token) {
+      return res.status(400).json({
+        ok: false,
+        error: "No se pudo obtener el token.",
+        detalle: ocultarTokens(tokenData),
+        diagnostico: {
+          app_id: FACEBOOK_APP_ID,
+          config_id: FACEBOOK_CONFIG_ID,
+          redirect_uri: FACEBOOK_REDIRECT_URI,
+          mensaje:
+            "El redirect_uri utilizado para intercambiar el código debe ser exactamente el mismo utilizado durante la autorización de Facebook (FB.login), y debe estar dado de alta en Meta Developers > Configuración del cliente de OAuth.",
+        },
+      });
+    }
+
+    const accessToken = tokenData.access_token;
+    console.log("[WHATSAPP SIGNUP] Token obtenido correctamente.");
+
+    // Token del sistema (larga duración), si está configurado. Se
+    // usa para la operación administrativa de suscribir la app a
+    // la WABA (paso 5), porque el usuario del sistema normalmente
+    // tiene permisos de admin permanentes sobre app + WABA, a
+    // diferencia del token corto que entrega el login del navegador.
+    const tokenAdmin = (process.env.META_TOKEN || accessToken).trim();
+
+    // ======================================================
+    // 2. CONSULTAR INFORMACIÓN DEL TOKEN
+    // ======================================================
+
+    let debugToken = null;
     try {
+      const debugResponse = await fetch(
+        "https://graph.facebook.com/debug_token?" +
+          new URLSearchParams({
+            input_token: accessToken,
+            access_token: accessToken,
+          })
+      );
+      debugToken = await debugResponse.json();
+    } catch (err) {
+      console.warn(
+        "[WHATSAPP SIGNUP] No se pudo depurar el token:",
+        err.message
+      );
+    }
 
-      const code =
-        String(req.body?.code || "").trim();
+    // ======================================================
+    // 3. OBTENER NEGOCIOS (BUSINESS MANAGER) DEL USUARIO
+    // ======================================================
 
-      if (!code) {
+    let negocios = null;
+    try {
+      const negociosResponse = await fetch(
+        "https://graph.facebook.com/v22.0/me/businesses?" +
+          new URLSearchParams({
+            fields: "id,name",
+            access_token: accessToken,
+          })
+      );
+      negocios = await negociosResponse.json();
+    } catch (err) {
+      console.warn(
+        "[WHATSAPP SIGNUP] No se pudieron obtener negocios:",
+        err.message
+      );
+    }
 
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error:
-              "Falta el código de autorización.",
-          });
+    // ======================================================
+    // 4. WABA Y NÚMEROS DE TELÉFONO
+    //
+    // Prioridad 1: waba_id que mandó el navegador (evento
+    // WA_EMBEDDED_SIGNUP). Es la fuente más confiable.
+    //
+    // Prioridad 2 (respaldo): si no llegó del navegador, se
+    // recorren los negocios obtenidos en el paso 3 buscando
+    // sus WABAs (propias y de cliente). Si se encuentra una
+    // sola, se usa esa; si hay varias, se listan todas para
+    // que tú elijas manualmente cuál es la correcta.
+    // ======================================================
+
+    let wabaId = wabaIdDesdeCliente || null;
+    let wabaInfo = null;
+    let numeros = null;
+    let wabasEncontradas = [];
+
+    if (!wabaId && negocios?.data?.length) {
+      for (const negocio of negocios.data) {
+        for (const edge of [
+          "owned_whatsapp_business_accounts",
+          "client_whatsapp_business_accounts",
+        ]) {
+          try {
+            const wabasResponse = await fetch(
+              `https://graph.facebook.com/v22.0/${negocio.id}/${edge}?` +
+                new URLSearchParams({
+                  fields: "id,name",
+                  access_token: accessToken,
+                })
+            );
+            const wabasData = await wabasResponse.json();
+
+            if (Array.isArray(wabasData?.data)) {
+              for (const w of wabasData.data) {
+                wabasEncontradas.push({
+                  negocio_id: negocio.id,
+                  negocio_nombre: negocio.name,
+                  relacion: edge,
+                  waba_id: w.id,
+                  waba_nombre: w.name,
+                });
+              }
+            }
+          } catch (err) {
+            console.warn(
+              `[WHATSAPP SIGNUP] No se pudo consultar ${edge} del negocio ${negocio.id}:`,
+              err.message
+            );
+          }
+        }
       }
 
+      if (wabasEncontradas.length === 1) {
+        wabaId = wabasEncontradas[0].waba_id;
+      }
+    }
 
-      console.log(
-        "=========================================="
-      );
+    if (wabaId) {
+      try {
+        const wabaResponse = await fetch(
+          `https://graph.facebook.com/v22.0/${wabaId}?` +
+            new URLSearchParams({
+              fields: "id,name,owner_business_info",
+              access_token: accessToken,
+            })
+        );
+        wabaInfo = await wabaResponse.json();
+      } catch (err) {
+        console.warn(
+          "[WHATSAPP SIGNUP] No se pudo obtener info de la WABA:",
+          err.message
+        );
+      }
 
-      console.log(
-        "[WHATSAPP SIGNUP] Iniciando intercambio"
-      );
+      try {
+        const numerosResponse = await fetch(
+          `https://graph.facebook.com/v22.0/${wabaId}/phone_numbers?` +
+            new URLSearchParams({
+              fields:
+                "id,display_phone_number,verified_name,code_verification_status,quality_rating",
+              access_token: accessToken,
+            })
+        );
+        numeros = await numerosResponse.json();
+      } catch (err) {
+        console.warn(
+          "[WHATSAPP SIGNUP] No se pudieron obtener los números de la WABA:",
+          err.message
+        );
+      }
+    }
 
-      console.log(
-        "[WHATSAPP SIGNUP] App ID:",
-        FACEBOOK_APP_ID
-      );
+    // ======================================================
+    // 5. SUSCRIBIR LA APP A LA WABA
+    //
+    // Paso obligatorio para que los mensajes de ESE número
+    // empiecen a llegar al webhook configurado en la app. Sin
+    // esto, el número puede quedar "conectado" en Meta pero el
+    // agente nunca recibe sus mensajes. Se usa el token del
+    // usuario del sistema (META_TOKEN) cuando existe.
+    // ======================================================
 
-      console.log(
-        "[WHATSAPP SIGNUP] Config ID:",
-        FACEBOOK_CONFIG_ID
-      );
+    let suscripcion = null;
 
-      console.log(
-        "[WHATSAPP SIGNUP] Redirect URI:",
-        FACEBOOK_REDIRECT_URI
-      );
-
-
-      // ======================================================
-      // 1. INTERCAMBIAR CODE POR TOKEN
-      // ======================================================
-
-      const parametros = new URLSearchParams();
-
-      parametros.append(
-        "client_id",
-        FACEBOOK_APP_ID
-      );
-
-      parametros.append(
-        "client_secret",
-        process.env.META_APP_SECRET
-      );
-
-      parametros.append(
-        "redirect_uri",
-        FACEBOOK_REDIRECT_URI
-      );
-
-      parametros.append(
-        "code",
-        code
-      );
-
-
-      const tokenResponse =
-        await fetch(
-          "https://graph.facebook.com/v22.0/oauth/access_token",
+    if (wabaId) {
+      try {
+        const suscripcionResponse = await fetch(
+          `https://graph.facebook.com/v22.0/${wabaId}/subscribed_apps`,
           {
             method: "POST",
-
             headers: {
-              "Content-Type":
-                "application/x-www-form-urlencoded",
+              "Content-Type": "application/x-www-form-urlencoded",
             },
-
-            body:
-              parametros.toString(),
+            body: new URLSearchParams({
+              access_token: tokenAdmin,
+            }).toString(),
           }
         );
+        suscripcion = await suscripcionResponse.json();
 
-
-      const tokenData =
-        await tokenResponse.json();
-
-
-      console.log(
-        "[WHATSAPP SIGNUP] Respuesta token:",
-        JSON.stringify(
-          tokenData,
-          null,
-          2
-        )
-      );
-
-
-      if (
-        !tokenResponse.ok ||
-        !tokenData.access_token
-      ) {
-
-        return res
-          .status(400)
-          .json({
-            ok: false,
-
-            error:
-              "No se pudo obtener el token.",
-
-            detalle:
-              tokenData,
-
-            diagnostico: {
-              app_id:
-                FACEBOOK_APP_ID,
-
-              config_id:
-                FACEBOOK_CONFIG_ID,
-
-              redirect_uri:
-                FACEBOOK_REDIRECT_URI,
-
-              mensaje:
-                "El redirect_uri utilizado para intercambiar el código debe ser exactamente el mismo utilizado durante la autorización de Facebook.",
-            },
-          });
-      }
-
-
-      const accessToken =
-        tokenData.access_token;
-
-
-      console.log(
-        "[WHATSAPP SIGNUP] Token obtenido correctamente."
-      );
-
-
-      // ======================================================
-      // 2. CONSULTAR INFORMACIÓN DEL TOKEN
-      // ======================================================
-
-      let debugToken = null;
-
-      try {
-
-        const debugResponse =
-          await fetch(
-            "https://graph.facebook.com/debug_token?" +
-            new URLSearchParams({
-              input_token:
-                accessToken,
-
-              access_token:
-                accessToken,
-            })
-          );
-
-        debugToken =
-          await debugResponse.json();
-
+        console.log(
+          "[WHATSAPP SIGNUP] Suscripción de la app a la WABA:",
+          JSON.stringify(suscripcion)
+        );
       } catch (err) {
-
         console.warn(
-          "[WHATSAPP SIGNUP] No se pudo depurar el token:",
+          "[WHATSAPP SIGNUP] No se pudo suscribir la app a la WABA:",
           err.message
         );
+        suscripcion = { error: err.message };
       }
-
-
-      // ======================================================
-      // 3. OBTENER NEGOCIOS DEL USUARIO
-      // ======================================================
-
-      let negocios = null;
-
-      try {
-
-        const negociosResponse =
-          await fetch(
-            "https://graph.facebook.com/v22.0/me/businesses?" +
-            new URLSearchParams({
-              access_token:
-                accessToken,
-            })
-          );
-
-        negocios =
-          await negociosResponse.json();
-
-      } catch (err) {
-
-        console.warn(
-          "[WHATSAPP SIGNUP] No se pudieron obtener negocios:",
-          err.message
-        );
-      }
-
-
-      // ======================================================
-      // 4. RESPUESTA
-      // ======================================================
-
-      return res.json({
-
-        ok: true,
-
-        mensaje:
-          "Autorización de WhatsApp obtenida correctamente.",
-
-        config_id:
-          FACEBOOK_CONFIG_ID,
-
-        redirect_uri:
-          FACEBOOK_REDIRECT_URI,
-
-        token_type:
-          tokenData.token_type || null,
-
-        expires_in:
-          tokenData.expires_in || null,
-
-        debug_token:
-          debugToken,
-
-        negocios:
-          negocios,
-
-      });
-
-
-    } catch (error) {
-
-      console.error(
-        "[WHATSAPP SIGNUP] Error interno:",
-        error
-      );
-
-      return res
-        .status(500)
-        .json({
-
-          ok: false,
-
-          error:
-            "Error interno.",
-
-          detalle:
-            error.message,
-
-        });
     }
+
+    // ======================================================
+    // 6. RESPUESTA
+    //
+    // Nunca se manda accessToken, client_secret ni tokenAdmin
+    // al navegador. Todo lo que viene de Meta pasa además por
+    // ocultarTokens() como red de seguridad extra.
+    // ======================================================
+
+    return res.json({
+      ok: true,
+      mensaje: "Autorización de WhatsApp obtenida correctamente.",
+      config_id: FACEBOOK_CONFIG_ID,
+      redirect_uri: FACEBOOK_REDIRECT_URI,
+      token_type: tokenData.token_type || null,
+      expires_in: tokenData.expires_in || null,
+      debug_token: ocultarTokens(debugToken),
+      negocios: ocultarTokens(negocios),
+      waba_id: wabaId,
+      waba_info: ocultarTokens(wabaInfo),
+      numeros_telefono: ocultarTokens(numeros),
+      wabas_encontradas: wabasEncontradas.length ? wabasEncontradas : null,
+      suscripcion_webhook: ocultarTokens(suscripcion),
+      phone_number_id_recibido_del_navegador:
+        phoneNumberIdDesdeCliente || null,
+    });
+  } catch (error) {
+    console.error("[WHATSAPP SIGNUP] Error interno:", error);
+    return res.status(500).json({
+      ok: false,
+      error: "Error interno.",
+      detalle: error.message,
+    });
   }
-);
+});
 
 
 // ============================================================
 // PÁGINA DE CONEXIÓN WHATSAPP
 // ============================================================
 
-app.get(
-  "/conectar-whatsapp",
-  (_req, res) => {
-
-    res.send(`<!DOCTYPE html>
-
+app.get("/conectar-whatsapp", (_req, res) => {
+  res.send(`<!DOCTYPE html>
 <html lang="es">
-
 <head>
-
 <meta charset="utf-8" />
-
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1"
-/>
-
-<title>
-Conectar WhatsApp - Nuevo Comienzo
-</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Conectar WhatsApp - Nuevo Comienzo</title>
 <style>
-
 body {
   font-family: Arial, sans-serif;
   max-width: 520px;
@@ -1746,7 +1807,6 @@ body {
   padding: 20px;
   text-align: center;
 }
-
 button {
   background: #25D366;
   color: white;
@@ -1756,16 +1816,8 @@ button {
   border-radius: 8px;
   cursor: pointer;
 }
-
-button:hover {
-  background: #1ebe5b;
-}
-
-button:disabled {
-  opacity: .6;
-  cursor: not-allowed;
-}
-
+button:hover { background: #1ebe5b; }
+button:disabled { opacity: .6; cursor: not-allowed; }
 #resultado {
   margin-top: 25px;
   text-align: left;
@@ -1776,163 +1828,215 @@ button:disabled {
   font-size: 13px;
   word-break: break-word;
 }
-
-.error {
-  color: #d32f2f;
-}
-
-.ok {
-  color: #188038;
-}
-
+.error { color: #d32f2f; }
+.ok { color: #188038; }
 </style>
-
 </head>
-
 <body>
 
-<h2>
-Conectar número de WhatsApp
-</h2>
-
+<h2>Conectar número de WhatsApp</h2>
+<p>Da clic al botón y sigue el flujo de Meta.</p>
 <p>
-Da clic al botón y sigue el flujo de Meta.
+Cuando aparezca la opción correspondiente, selecciona conectar
+tu cuenta existente de WhatsApp Business.
 </p>
 
-<p>
-Cuando aparezca la opción correspondiente,
-selecciona conectar tu cuenta existente de
-WhatsApp Business.
-</p>
+<button id="btnConectar" onclick="launchWhatsAppSignup()">Conectar WhatsApp</button>
 
-<button
-  id="btnConectar"
-  onclick="launchWhatsAppSignup()"
->
-Conectar WhatsApp
-</button>
-
-<div id="resultado">
-Esperando...
-</div>
-
+<div id="resultado">Esperando...</div>
 
 <script>
+
+// ==========================================================
+// DATOS CAPTURADOS DEL EVENTO WA_EMBEDDED_SIGNUP
+// (postMessage que manda Meta durante el flujo, antes o junto
+// con el callback de FB.login; es la forma oficial de Meta de
+// avisar qué waba_id / phone_number_id se conectó)
+// ==========================================================
+var datosEmbeddedSignup = {
+  waba_id: null,
+  phone_number_id: null
+};
+
+window.addEventListener("message", function (event) {
+  if (
+    event.origin !== "https://www.facebook.com" &&
+    event.origin !== "https://web.facebook.com"
+  ) {
+    return;
+  }
+
+  var data;
+  try {
+    data = JSON.parse(event.data);
+  } catch (e) {
+    return; // no era un mensaje de WA_EMBEDDED_SIGNUP, se ignora
+  }
+
+  if (data.type !== "WA_EMBEDDED_SIGNUP") return;
+
+  console.log("[WA_EMBEDDED_SIGNUP]", data.event, data.data);
+
+  if (data.event === "FINISH") {
+    datosEmbeddedSignup.waba_id = data.data.waba_id || null;
+    datosEmbeddedSignup.phone_number_id = data.data.phone_number_id || null;
+  } else if (data.event === "FINISH_ONLY_WABA") {
+    datosEmbeddedSignup.waba_id = data.data.waba_id || null;
+  } else if (data.event === "CANCEL") {
+    console.warn(
+      "[WA_EMBEDDED_SIGNUP] Cancelado en el paso:",
+      data.data.current_step
+    );
+  } else if (data.event === "ERROR") {
+    console.error("[WA_EMBEDDED_SIGNUP] Error:", data.data.error_message);
+  }
+});
 
 // ==========================================================
 // FACEBOOK SDK
 // ==========================================================
 
 window.fbAsyncInit = function () {
-
   try {
-
     FB.init({
-
-      appId:
-        '${FACEBOOK_APP_ID}',
-
-      cookie:
-        true,
-
-      xfbml:
-        true,
-
-      version:
-        'v22.0',
-
+      appId: '${FACEBOOK_APP_ID}',
+      cookie: true,
+      xfbml: true,
+      version: 'v22.0'
     });
-
-    console.log(
-      "[FB] SDK inicializado correctamente."
-    );
-
+    console.log("[FB] SDK inicializado correctamente.");
   } catch (err) {
-
-    console.error(
-      "[FB] Error:",
-      err
-    );
-
-    document.getElementById(
-      "resultado"
-    ).innerHTML =
-      '<p class="error">' +
-      '⚠️ Error al inicializar Facebook SDK.' +
-      '</p>';
-
+    console.error("[FB] Error:", err);
+    document.getElementById("resultado").innerHTML =
+      '<p class="error">⚠️ Error al inicializar Facebook SDK.</p>';
   }
-
 };
-
 
 // ==========================================================
 // CARGAR FACEBOOK SDK
 // ==========================================================
 
-(function (
-  d,
-  s,
-  id
-) {
-
+(function (d, s, id) {
   var js;
+  var fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s);
+  js.id = id;
+  js.src = "https://connect.facebook.net/es_LA/sdk.js";
+  js.async = true;
+  js.defer = true;
+  js.onerror = function () {
+    document.getElementById("resultado").innerHTML =
+      '<p class="error">⚠️ No se pudo cargar Facebook SDK.</p>';
+  };
+  fjs.parentNode.insertBefore(js, fjs);
+})(document, "script", "facebook-jssdk");
 
-  var fjs =
-    d.getElementsByTagName(s)[0];
-
-  if (
-    d.getElementById(id)
-  ) {
-
-    return;
-
-  }
-
-  js =
-    d.createElement(s);
-
-  js.id =
-    id;
-
-  js.src =
-    "https://connect.facebook.net/es_LA/sdk.js";
-
-  js.async =
-    true;
-
-  js.defer =
-    true;
-
-  js.onerror =
-    function () {
-
-      document.getElementById(
-        "resultado"
-      ).innerHTML =
-        '<p class="error">' +
-        '⚠️ No se pudo cargar Facebook SDK.' +
-        '</p>';
-
-    };
-
-  fjs.parentNode.insertBefore(
-    js,
-    fjs
-  );
-
-})(
-  document,
-  "script",
-  "facebook-jssdk"
-);
-
-
-```js
 // ==========================================================
 // INICIAR WHATSAPP EMBEDDED SIGNUP
 // ==========================================================
-function launchWhatsAppSignup() { const resultado = document.getElementById("resultado"); const boton = document.getElementById("btnConectar"); // ======================================================== // VERIFICAR FACEBOOK SDK // ======================================================== if (typeof FB === "undefined") { resultado.innerHTML = '<p class="error">' + '⚠️ Facebook SDK todavía no está disponible. ' + 'Espera unos segundos e intenta nuevamente.' + '</p>'; return; } boton.disabled = true; resultado.textContent = "Abriendo Facebook..."; console.log( "[WHATSAPP SIGNUP] Iniciando FB.login" ); // ======================================================== // FACEBOOK LOGIN // ======================================================== FB.login( function (response) { console.log( "[WHATSAPP SIGNUP] Respuesta completa:", JSON.stringify( response, null, 2 ) ); // ==================================================== // VERIFICAR RESPUESTA // ==================================================== if ( !response || !response.authResponse ) { boton.disabled = false; resultado.innerHTML = '<p class="error">' + '⚠️ Meta no completó la autorización.' + '</p>'; console.log( "[WHATSAPP SIGNUP] Sin authResponse." ); return; } const authResponse = response.authResponse; console.log( "[WHATSAPP SIGNUP] authResponse:", JSON.stringify( authResponse, null, 2 ) ); // ==================================================== // OBTENER CODE // ==================================================== const code = authResponse.code; console.log( "[WHATSAPP SIGNUP] Código recibido:", code ? "SI" : "NO" ); // ==================================================== // VALIDAR CODE // ==================================================== if (!code) { boton.disabled = false; resultado.innerHTML = '<p class="error">' + '⚠️ Meta no devolvió el código de autorización.' + '</p>'; return; } resultado.textContent = "Código recibido. Enviándolo al servidor..."; // ==================================================== // ENVIAR CODE AL SERVIDOR // ==================================================== fetch( "/conectar-whatsapp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: code }) } ) // ==================================================== // RESPUESTA DEL SERVIDOR // ==================================================== .then( async function (r) { const data = await r.json(); console.log( "[WHATSAPP SIGNUP] Respuesta servidor:", JSON.stringify( data, null, 2 ) ); if (!r.ok) { throw new Error( JSON.stringify( data, null, 2 ) ); } return data; } ) // ==================================================== // ÉXITO // ==================================================== .then( function (data) { boton.disabled = false; resultado.innerHTML = '<p class="ok">' + '✅ WhatsApp autorizado correctamente.' + '</p>' + '<pre>' + JSON.stringify( data, null, 2 ) + '</pre>'; } ) // ==================================================== // ERROR // ==================================================== .catch( function (err) { boton.disabled = false; console.error( "[WHATSAPP SIGNUP] Error:", err ); resultado.innerHTML = '<p class="error">' + '⚠️ Error al conectar con el servidor:' + '</p>' + '<pre>' + err.message + '</pre>'; } ); }, // ====================================================== // CONFIGURACIÓN FACEBOOK LOGIN FOR BUSINESS // ====================================================== { config_id: '${FACEBOOK_CONFIG_ID}', response_type: "code", override_default_response_type: true, extras: { sessionInfoVersion: 3, featureType: "whatsapp_business_app_onboarding" } } ); }
+
+function launchWhatsAppSignup() {
+  const resultado = document.getElementById("resultado");
+  const boton = document.getElementById("btnConectar");
+
+  if (typeof FB === "undefined") {
+    resultado.innerHTML =
+      '<p class="error">⚠️ Facebook SDK todavía no está disponible. ' +
+      'Espera unos segundos e intenta nuevamente.</p>';
+    return;
+  }
+
+  boton.disabled = true;
+  resultado.textContent = "Abriendo Facebook...";
+  console.log("[WHATSAPP SIGNUP] Iniciando FB.login");
+
+  FB.login(
+    function (response) {
+      console.log(
+        "[WHATSAPP SIGNUP] Respuesta completa:",
+        JSON.stringify(response, null, 2)
+      );
+
+      if (!response || !response.authResponse) {
+        boton.disabled = false;
+        resultado.innerHTML =
+          '<p class="error">⚠️ Meta no completó la autorización.</p>';
+        console.log("[WHATSAPP SIGNUP] Sin authResponse.");
+        return;
+      }
+
+      const authResponse = response.authResponse;
+      console.log(
+        "[WHATSAPP SIGNUP] authResponse:",
+        JSON.stringify(authResponse, null, 2)
+      );
+
+      const code = authResponse.code;
+      console.log("[WHATSAPP SIGNUP] Código recibido:", code ? "SI" : "NO");
+
+      if (!code) {
+        boton.disabled = false;
+        resultado.innerHTML =
+          '<p class="error">⚠️ Meta no devolvió el código de autorización.</p>';
+        return;
+      }
+
+      resultado.textContent = "Código recibido. Enviándolo al servidor...";
+
+      fetch("/conectar-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: code,
+          waba_id: datosEmbeddedSignup.waba_id,
+          phone_number_id: datosEmbeddedSignup.phone_number_id
+        })
+      })
+        .then(async function (r) {
+          const data = await r.json();
+          console.log(
+            "[WHATSAPP SIGNUP] Respuesta servidor:",
+            JSON.stringify(data, null, 2)
+          );
+          if (!r.ok) {
+            throw new Error(JSON.stringify(data, null, 2));
+          }
+          return data;
+        })
+        .then(function (data) {
+          boton.disabled = false;
+          resultado.innerHTML =
+            '<p class="ok">✅ WhatsApp autorizado correctamente.</p>' +
+            '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        })
+        .catch(function (err) {
+          boton.disabled = false;
+          console.error("[WHATSAPP SIGNUP] Error:", err);
+          resultado.innerHTML =
+            '<p class="error">⚠️ Error al conectar con el servidor:</p>' +
+            '<pre>' + err.message + '</pre>';
+        });
+    },
+    {
+      config_id: '${FACEBOOK_CONFIG_ID}',
+      response_type: "code",
+      override_default_response_type: true,
+      extras: {
+        sessionInfoVersion: 3,
+        featureType: "whatsapp_business_app_onboarding"
+      }
+    }
+  );
+}
+
+</script>
+
+</body>
+</html>`);
+});
+
+
 
 // ============================================================
 // DIAGNÓSTICO TOKEN
@@ -2112,4 +2216,3 @@ app.listen(
     conversaciones.inicializar();
   }
 );
-```
