@@ -3,135 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alejandro Santibáñez | Catálogo Inmobiliario Franco, Silao</title>
-    <link rel="stylesheet" href="estilos.css">
+    <title>Galería de Fotos - Proyecto</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <!-- Encabezado Principal -->
-    <header class="header">
-        <div class="header-container">
-            <div class="brand">
-                <div class="avatar">AS</div>
-                <div class="brand-info">
-                    <h1>Alejandro Santibáñez</h1>
-                    <p>Franco, Silao · Gto.</p>
-                </div>
-            </div>
-            <nav class="nav">
-                <a href="#santuario">Casas</a>
-                <a href="#diamante">Terrenos</a>
-                <a href="#contacto" class="btn-nav">Contacto</a>
-            </nav>
-        </div>
+    <header>
+        <h1>Galería de Fotos</h1>
+        <p>Imágenes cargadas desde la carpeta <code>public-galeria/fotos</code></p>
     </header>
 
-    <!-- Banner Hero / Accesos Rápidos -->
-    <section class="hero">
-        <h2>Encuentra tu próximo hogar o inversión</h2>
-        <p>Desarrollos con excelente ubicación cerca de Guanajuato Puerto Interior</p>
-
-        <!-- Botones de Acceso Rápido -->
-        <div class="contenedor-botones">
-            <a href="#santuario" class="btn-desarrollo btn-santuario">
-                <strong>Residencial Santuario</strong>
-                <span>Casas y Preventa · Desde $950,000 MXN</span>
-            </a>
-            <a href="#diamante" class="btn-desarrollo btn-diamante">
-                <strong>Privada Diamante</strong>
-                <span>Terrenos Residenciales · Desde $410,000 MXN</span>
-            </a>
-        </div>
-    </section>
-
-    <!-- Sección Casas: Residencial Santuario -->
-    <section id="santuario" class="catalogo-seccion">
-        <h3 class="titulo-seccion">Residencial Santuario (Casas)</h3>
-        
-        <div class="grid-propiedades">
-
-            <!-- Modelo TITA -->
-            <article class="tarjeta-propiedad">
-                <div class="imagen-contenedor">
-                    <img src="https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=600&q=80" alt="Modelo TITA">
-                    <span class="badge">Entrega Inmediata</span>
-                </div>
-                <div class="contenido">
-                    <h4>Modelo TITA</h4>
-                    <p class="precio">Desde $950,000 MXN</p>
-                    <ul class="specs">
-                        <li><span>🛏️</span> 2 Recámaras</li>
-                        <li><span>🚿</span> 1 Baño completo</li>
-                        <li><span>📐</span> 90 m² Terreno | ~48.7 m² Const.</li>
-                    </ul>
-                    <a href="https://wa.me/524778544223?text=Hola%20Alejandro,%20quiero%20información%20del%20Modelo%20TITA" target="_blank" class="btn-whatsapp">Cotizar por WhatsApp</a>
-                </div>
-            </article>
-
-            <!-- Modelo SANTI -->
-            <article class="tarjeta-propiedad destacada">
-                <div class="imagen-contenedor">
-                    <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=600&q=80" alt="Modelo SANTI">
-                    <span class="badge badge-top">Más Vendido</span>
-                </div>
-                <div class="contenido">
-                    <h4>Modelo SANTI</h4>
-                    <p class="precio">Desde $1,050,000 MXN</p>
-                    <ul class="specs">
-                        <li><span>🛏️</span> 2 Recámaras + Alcoba</li>
-                        <li><span>🚿</span> 1 Baño completo</li>
-                        <li><span>📐</span> 90 m² Terreno | ~55.18 m² Const.</li>
-                    </ul>
-                    <a href="https://wa.me/524778544223?text=Hola%20Alejandro,%20quiero%20información%20del%20Modelo%20SANTI" target="_blank" class="btn-whatsapp">Cotizar por WhatsApp</a>
-                </div>
-            </article>
-
-            <!-- Modelo LUIGGI -->
-            <article class="tarjeta-propiedad">
-                <div class="imagen-contenedor">
-                    <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80" alt="Modelo LUIGGI">
-                    <span class="badge">2 Plantas</span>
-                </div>
-                <div class="contenido">
-                    <h4>Modelo LUIGGI</h4>
-                    <p class="precio">Desde $1,700,000 MXN</p>
-                    <ul class="specs">
-                        <li><span>🛏️</span> 3 Recámaras</li>
-                        <li><span>🚿</span> 2 Baños completos</li>
-                        <li><span>📐</span> 90 m² Terreno | 92 m² Const.</li>
-                    </ul>
-                    <a href="https://wa.me/524778544223?text=Hola%20Alejandro,%20quiero%20información%20del%20Modelo%20LUIGGI" target="_blank" class="btn-whatsapp">Cotizar por WhatsApp</a>
-                </div>
-            </article>
-
-        </div>
-    </section>
-
-    <!-- Sección Terrenos: Privada Diamante -->
-    <section id="diamante" class="catalogo-seccion bg-gris">
-        <h3 class="titulo-seccion">Privada Diamante (Terrenos Residenciales)</h3>
-        
-        <div class="grid-terrenos">
-            <div class="terreno-card">
-                <div class="terreno-info">
-                    <h4>Lotes Residenciales Urbanizados</h4>
-                    <p>Terrenos ideales para construir a tu gusto dentro de desarrollo privado.</p>
-                    <ul>
-                        <li><strong>Superficie base:</strong> Lotes desde 90 m² (6m × 15m)</li>
-                        <li><strong>Servicios:</strong> Red eléctrica y agua subterránea</li>
-                        <li><strong>Precios:</strong> Desde $410,000 MXN (~$4,500 MXN/m²)</li>
-                    </ul>
-                    <a href="https://wa.me/524778544223?text=Hola%20Alejandro,%20me%20interesan%20los%20Terrenos%20de%20Privada%20Diamante" target="_blank" class="btn-whatsapp">Consultar Disponibilidad</a>
-                </div>
+    <main>
+        <div id="contenedor-galeria" class="galeria-grid">
+            <!-- Las imágenes se cargarán aquí automáticamente o puedes agregarlas estáticamente -->
+            <div class="foto-card">
+                <img src="public-galeria/fotos/ejemplo1.jpg" alt="Foto de ejemplo 1" onerror="this.src='https://via.placeholder.com/300x200?text=Sube+tu+foto+aqui'">
+                <p>ejemplo1.jpg</p>
             </div>
         </div>
-    </section>
+    </main>
 
-    <!-- Pie de página -->
-    <footer id="contacto" class="footer">
-        <p><strong>Alejandro Santibáñez — Franco, Silao · Gto.</strong></p>
-        <p>Aceptamos créditos Infonavit, Fovissste, ISSEG y Bancarios.</p>
+    <footer>
+        <p>Proyecto Watsapp Voice Agent - Preparado para cuando active el asistente.</p>
     </footer>
 
+    <script src="app.js"></script>
 </body>
 </html>
