@@ -1,276 +1,69 @@
-/* Reset Básico */
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'Segoe UI', system-ui, sans-serif;
 }
 
 body {
-    background-color: #f7f9f8;
-    color: #2c3e50;
-    line-height: 1.6;
-}
-
-/* Encabezado */
-.header {
-    background-color: #1b3b2b;
-    color: #ffffff;
-    padding: 15px 20px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-}
-
-.header-container {
-    max-width: 1100px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.avatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    border: 1px solid #c5a059;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: #c5a059;
-}
-
-.brand-info h1 {
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.brand-info p {
-    font-size: 0.8rem;
-    color: #a3b899;
-}
-
-.nav a {
-    color: #ffffff;
-    text-decoration: none;
-    margin-left: 15px;
-    font-size: 0.9rem;
-}
-
-.btn-nav {
-    background-color: #c5a059;
-    padding: 6px 14px;
-    border-radius: 6px;
-    color: #1b3b2b !important;
-    font-weight: bold;
-}
-
-/* Hero & Botones Principales */
-.hero {
-    text-align: center;
-    padding: 40px 20px;
-    background: linear-gradient(180deg, #1b3b2b 0%, #2a523e 100%);
-    color: white;
-}
-
-.hero h2 {
-    font-size: 1.8rem;
-    margin-bottom: 8px;
-}
-
-.hero p {
-    color: #d1e0d7;
-    margin-bottom: 25px;
-}
-
-/* Botones sin aspecto apretado */
-.contenedor-botones {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    max-width: 700px;
-    margin: 0 auto;
-}
-
-@media (min-width: 600px) {
-    .contenedor-botones {
-        flex-direction: row;
-    }
-}
-
-.btn-desarrollo {
-    flex: 1;
-    padding: 18px 20px;
-    border-radius: 12px;
-    text-decoration: none;
-    text-align: left;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    display: flex;
-    flex-direction: column;
-}
-
-.btn-desarrollo:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-}
-
-.btn-santuario {
-    background-color: #ffffff;
-    color: #1b3b2b;
-    border-left: 5px solid #1b3b2b;
-}
-
-.btn-diamante {
-    background-color: #f4ece1;
-    color: #5c4314;
-    border-left: 5px solid #c5a059;
-}
-
-.btn-desarrollo strong {
-    font-size: 1.1rem;
-}
-
-.btn-desarrollo span {
-    font-size: 0.85rem;
-    opacity: 0.8;
-    margin-top: 4px;
-}
-
-/* Catálogo */
-.catalogo-seccion {
-    max-width: 1100px;
-    margin: 40px auto;
-    padding: 0 20px;
-}
-
-.titulo-seccion {
-    font-size: 1.4rem;
-    margin-bottom: 25px;
-    border-bottom: 2px solid #c5a059;
-    display: inline-block;
-    padding-bottom: 5px;
-}
-
-.grid-propiedades {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 25px;
-}
-
-.tarjeta-propiedad {
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.06);
-    display: flex;
-    flex-direction: column;
-}
-
-.imagen-contenedor {
-    position: relative;
-    height: 190px;
-}
-
-.imagen-contenedor img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.badge {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    background: rgba(27, 59, 43, 0.85);
-    color: white;
-    padding: 4px 10px;
-    font-size: 0.75rem;
-    border-radius: 4px;
-}
-
-.badge-top {
-    background: #c5a059;
-    color: #1b3b2b;
-    font-weight: bold;
-}
-
-.contenido {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f9;
+    color: #333;
     padding: 20px;
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
 }
 
-.contenido h4 {
-    font-size: 1.2rem;
-}
-
-.precio {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #1b3b2b;
-    margin: 6px 0 15px 0;
-}
-
-.specs {
-    list-style: none;
-    font-size: 0.9rem;
-    margin-bottom: 20px;
-    flex-grow: 1;
-}
-
-.specs li {
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.btn-whatsapp {
-    background-color: #25d366;
-    color: white;
+header {
     text-align: center;
-    text-decoration: none;
-    padding: 12px;
+    margin-bottom: 40px;
+}
+
+header h1 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+header p {
+    color: #7f8c8d;
+}
+
+.galeria-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.foto-card {
+    background: #ffffff;
     border-radius: 8px;
-    font-weight: bold;
-    transition: background 0.2s ease;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease;
 }
 
-.btn-whatsapp:hover {
-    background-color: #1ebd56;
+.foto-card:hover {
+    transform: translateY(-5px);
 }
 
-/* Terrenos */
-.bg-gris {
-    background: #eef2ef;
-    padding: 40px 20px;
-    border-radius: 16px;
+.foto-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
 }
 
-.terreno-card {
-    background: white;
-    padding: 25px;
-    border-radius: 12px;
-}
-
-.terreno-info ul {
-    margin: 15px 0 20px 20px;
-}
-
-.footer {
+.foto-card p {
+    padding: 12px;
+    font-size: 14px;
     text-align: center;
-    padding: 30px;
-    background: #1b3b2b;
-    color: white;
-    font-size: 0.9rem;
+    color: #555;
+    background: #fff;
+    border-top: 1px solid #eee;
+}
+
+footer {
+    text-align: center;
+    margin-top: 50px;
+    color: #aaa;
+    font-size: 13px;
 }
